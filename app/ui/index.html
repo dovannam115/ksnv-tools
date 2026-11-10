@@ -1,0 +1,832 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="google" content="notranslate">
+<title>KSNV Report</title>
+<link rel="icon" id="ico" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%23c96442'/%3E%3Cpath d='M18 20h28M18 32h20M18 44h28' stroke='white' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#262624; --elev:#2F2D29; --card:#34322D; --hover:#3D3B36;
+    --line:#46443F; --line2:#4D4A45;
+    --fg:#F5F4ED; --muted:#A19D93; --dim:#777267;
+    --ember:#c96442; --ember-lit:#d97757;
+    --good:#34d399; --warn:#f59e0b; --bad:#f87171;
+    --console:#1F1E1C; --console-fg:#C9C5B9; --field:#262624;
+  }
+  :root[data-theme="light"]{
+    --bg:#FFFFFF; --elev:#F7F6F2; --card:#FFFFFF; --hover:#F1EFE9;
+    --line:#E6E3DB; --line2:#D6D2C8;
+    --fg:#1F1E1C; --muted:#6B675E; --dim:#9A958A;
+    --ember:#c96442; --ember-lit:#b8583a;
+    --good:#0f8a5f; --warn:#b26a00; --bad:#c2410c;
+    --console:#F7F6F2; --console-fg:#3D3B36; --field:#FFFFFF;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{background:var(--bg); color:var(--fg); display:flex;
+       font:14px/1.45 "Segoe UI",system-ui,-apple-system,Arial,sans-serif;
+       -webkit-font-smoothing:antialiased; letter-spacing:-.006em}
+  ::selection{background:rgba(217,119,87,.30)}
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px}
+  ::-webkit-scrollbar-track{background:transparent}
+
+  aside{width:240px; flex:0 0 240px; background:var(--elev); border-right:1px solid var(--line);
+        display:flex; flex-direction:column; padding:16px 12px; gap:16px; user-select:none}
+  .brand{padding:2px 6px 0; display:flex; align-items:center; gap:10px}
+  .brand img{width:34px; height:34px; border-radius:9px}
+  .brand b{display:block; font-size:13px; font-weight:700; letter-spacing:.02em; white-space:nowrap}
+  .brand span{display:block; color:var(--dim); font-size:11px; letter-spacing:.06em; margin-top:1px}
+  nav{display:flex; flex-direction:column; gap:2px; overflow:auto}
+  .grp-h{font-size:10.5px; color:var(--dim); letter-spacing:.12em; text-transform:uppercase; padding:12px 10px 4px}
+  .grp-h:first-child{padding-top:2px}
+  nav button{display:flex; align-items:center; justify-content:space-between; gap:8px; background:none; border:0;
+             color:var(--muted); text-align:left; cursor:pointer; padding:8px 10px; border-radius:9px;
+             font:inherit; font-size:13.5px}
+  nav button:hover{background:var(--hover); color:var(--fg)}
+  nav button.on{background:var(--card); color:var(--fg); box-shadow:0 0 0 1px var(--line) inset}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--good);display:none;flex:0 0 7px}
+  .dot.run{display:block;background:var(--ember);animation:pulse 1.2s ease-in-out infinite}
+  .dot.ok{display:block;background:var(--good)}
+  .dot.bad{display:block;background:var(--bad)}
+  .dot.new{display:block;background:var(--good)}
+  @keyframes pulse{50%{opacity:.35}}
+  .side-end{margin-top:auto; display:flex; flex-direction:column; gap:6px; padding:0 2px}
+  .side-end .row{display:flex; gap:6px}
+  .ver{color:var(--dim); font-size:11.5px; padding:2px 8px 0}
+
+  main{flex:1; min-width:0; display:flex; flex-direction:column}
+  header{display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:14px 22px 12px;
+         border-bottom:1px solid var(--line); min-height:58px}
+  header h1{font-size:17px; margin:0; font-weight:650; white-space:nowrap}
+  header .sp{flex:1}
+  .wrap{flex:1; overflow:auto; padding:18px 22px 26px}
+  .cols{display:grid; grid-template-columns:minmax(300px,380px) minmax(0,1fr); gap:14px; align-items:start}
+  @media (max-width:980px){.cols{grid-template-columns:1fr}}
+  .stack{display:flex; flex-direction:column; gap:14px; min-width:0}
+
+  button{font:inherit; cursor:pointer; white-space:nowrap; transition:background .18s,border-color .18s,color .18s,opacity .18s}
+  button:active:not(:disabled){transform:scale(.985)}
+  .btn{background:var(--card); color:var(--fg); border:1px solid var(--line); padding:8px 13px; border-radius:9px}
+  .btn:hover:not(:disabled){background:var(--hover); border-color:var(--line2)}
+  .btn.pri{background:var(--ember); border-color:var(--ember); color:#fff}
+  .btn.pri:hover:not(:disabled){background:var(--ember-lit); border-color:var(--ember-lit)}
+  .btn.sm{padding:5px 10px; border-radius:8px; font-size:12.5px}
+  .btn.gho{background:transparent}
+  .btn.wide{width:100%}
+  .btn:disabled{opacity:.42; cursor:default}
+  .link{background:none; border:0; color:var(--ember-lit); padding:0; font-size:12.5px; cursor:pointer}
+  .link:hover{text-decoration:underline}
+
+  .card{background:var(--card); border:1px solid var(--line); border-radius:13px; padding:15px 16px; min-width:0}
+  .card h2{margin:0 0 10px; font-size:13.5px; font-weight:650}
+  .no{font-size:10.5px; color:var(--dim); letter-spacing:.12em; text-transform:uppercase; margin:14px 0 6px}
+  .no:first-child{margin-top:0}
+  .muted{color:var(--muted); font-size:12.5px}
+  .hint{color:var(--dim); font-size:12px; margin-top:6px}
+  .hide{display:none !important}
+
+  .drop{border:1.5px dashed var(--line2); border-radius:11px; padding:14px; text-align:center; color:var(--muted);
+        font-size:13px; cursor:pointer}
+  .drop:hover,.drop.on{border-color:var(--ember); color:var(--fg); background:rgba(201,100,66,.06)}
+  .chips{display:flex; flex-direction:column; gap:6px; margin-top:8px}
+  .chip{display:flex; align-items:center; gap:8px; background:var(--elev); border:1px solid var(--line); border-radius:9px;
+        padding:7px 10px; font-size:12.5px; min-width:0}
+  .chip span{flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .chip i{font-style:normal; color:var(--dim)}
+  .chip button{background:none; border:0; color:var(--dim); font-size:15px; line-height:1; padding:0 2px}
+  .chip button:hover{color:var(--bad)}
+
+  .inp,select,textarea{background:var(--field); border:1px solid var(--line); color:var(--fg); border-radius:9px;
+        padding:8px 11px; font:inherit; font-size:13px; width:100%}
+  textarea{resize:vertical; font-family:ui-monospace,"Cascadia Mono",Consolas,monospace; font-size:12.5px}
+  .inp:focus,select:focus,textarea:focus{outline:none; border-color:var(--line2)}
+  .seg{display:flex; background:var(--elev); border:1px solid var(--line); border-radius:10px; padding:3px; gap:3px}
+  .seg button{flex:1; background:none; border:0; color:var(--muted); padding:6px 8px; border-radius:7px; font-size:12.5px}
+  .seg button.on{background:var(--card); color:var(--fg); box-shadow:0 0 0 1px var(--line) inset}
+  label.ck{display:flex; align-items:center; gap:7px; color:var(--muted); font-size:12.5px; cursor:pointer; margin:4px 0}
+  input[type=checkbox],input[type=radio]{accent-color:var(--ember); width:14px; height:14px; cursor:pointer; margin:0}
+  .act{margin-top:16px; display:flex; gap:8px}
+  .act .btn.pri{flex:1}
+
+  .status{display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--muted); flex-wrap:wrap}
+  .status .dot{display:block}
+  .note{border-radius:10px; padding:9px 12px; font-size:12.5px; margin-top:10px}
+  .note.ok{background:rgba(52,211,153,.10); color:var(--good)}
+  .note.warn{background:rgba(245,158,11,.11); color:var(--warn)}
+  .note.bad{background:rgba(248,113,113,.11); color:var(--bad)}
+  .note ul{margin:4px 0 0; padding-left:18px}
+  .code{display:flex; align-items:center; gap:10px; flex-wrap:wrap; background:rgba(201,100,66,.12);
+        border:1px solid rgba(201,100,66,.4); border-radius:11px; padding:11px 13px; margin-top:8px}
+  .code b{font:600 18px/1 ui-monospace,Consolas,monospace; letter-spacing:.12em; color:var(--fg)}
+
+  .empty{color:var(--muted); font-size:13px; padding:28px 6px; text-align:center}
+  .runhead{display:flex; align-items:center; gap:10px}
+  .runhead b{font-size:13.5px}
+  .runhead .sp{flex:1}
+  .bar{height:6px; background:var(--elev); border-radius:6px; overflow:hidden; margin-top:12px}
+  .bar div{height:100%; background:var(--ember); width:0; transition:width .4s}
+  .barlbl{display:flex; justify-content:space-between; color:var(--muted); font-size:12px; margin-top:6px; gap:10px}
+  .barlbl span:first-child{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .spin{width:13px;height:13px;border-radius:50%;border:2px solid var(--line2);border-top-color:var(--ember);animation:sp .7s linear infinite;flex:0 0 13px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  pre{margin:8px 0 0; background:var(--console); color:var(--console-fg); border:1px solid var(--line); border-radius:11px;
+      padding:11px 13px; max-height:34vh; overflow:auto; font:12.2px/1.55 ui-monospace,"Cascadia Mono",Consolas,monospace;
+      white-space:pre-wrap; word-break:break-word}
+  details{margin-top:12px}
+  summary{cursor:pointer; color:var(--muted); font-size:12.5px; user-select:none}
+  summary:hover{color:var(--fg)}
+
+  .stats{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px}
+  .stat{flex:1 1 120px; background:var(--elev); border:1px solid var(--line); border-radius:11px; padding:10px 13px; min-width:0}
+  .stat div{font-size:11px; color:var(--dim); letter-spacing:.06em; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .stat b{display:block; font-size:21px; font-weight:650; margin-top:2px; font-variant-numeric:tabular-nums; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .stat b.good{color:var(--good)} .stat b.warn{color:var(--warn)} .stat b.bad{color:var(--bad)}
+  .files{display:flex; flex-direction:column; gap:8px; margin-top:12px}
+  .file{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+  .file .btn.pri{flex:1 1 220px; overflow:hidden; text-overflow:ellipsis; text-align:left}
+  .caption{color:var(--muted); font-size:12px; margin-top:10px}
+
+  .tbl{margin-top:16px}
+  .tblh{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px}
+  .tblh h3{margin:0; font-size:12.5px; font-weight:650; margin-right:6px}
+  .views{display:flex; gap:4px; flex-wrap:wrap}
+  .views button{background:none; border:1px solid var(--line); color:var(--muted); border-radius:999px; padding:3px 10px; font-size:12px}
+  .views button.on{background:var(--ember); border-color:var(--ember); color:#fff}
+  .tw{overflow:auto; max-height:56vh; border:1px solid var(--line); border-radius:10px}
+  table{border-collapse:collapse; width:100%; font-size:12.5px}
+  th{position:sticky; top:0; background:var(--elev); text-align:left; font-size:10.5px; font-weight:600; color:var(--dim);
+     text-transform:uppercase; letter-spacing:.06em; padding:8px 10px; border-bottom:1px solid var(--line); white-space:nowrap; z-index:1}
+  td{padding:6px 10px; border-bottom:1px solid var(--line); white-space:nowrap; max-width:420px; overflow:hidden; text-overflow:ellipsis}
+  td.wrap{white-space:normal; min-width:380px; max-width:620px}
+  td.n{text-align:right; font-variant-numeric:tabular-nums}
+  tbody tr:hover td{background:var(--hover)}
+  tr:last-child td{border-bottom:0}
+  .more{color:var(--dim); font-size:12px; margin-top:6px}
+
+  .colchk td{white-space:normal}
+  .big{font-size:22px; font-weight:650}
+  .notes{background:var(--console); border:1px solid var(--line); border-radius:11px; padding:11px 13px; color:var(--console-fg);
+         font:12.5px/1.6 ui-monospace,Consolas,monospace; white-space:pre-wrap; max-height:34vh; overflow:auto}
+  #fabbox{margin-bottom:14px} #fabbox:empty{display:none} #fabbox:has(.veil){margin:0}
+  .veil{position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:center; justify-content:center; z-index:30; padding:16px}
+  .modal{background:var(--card); border:1px solid var(--line); border-radius:14px; width:min(560px,100%); padding:18px 20px;
+         box-shadow:0 18px 50px rgba(0,0,0,.35)}
+  .modal h2{margin:0 0 10px; font-size:15px}
+  .toast{position:fixed; bottom:18px; left:50%; transform:translateX(-50%); background:var(--fg); color:var(--bg);
+         padding:9px 16px; border-radius:10px; font-size:13px; z-index:50; box-shadow:0 8px 30px rgba(0,0,0,.25)}
+</style>
+</head>
+<body>
+<aside>
+  <div class="brand"><img id="logo" alt=""><div><b>KSNV Report</b><span>PVI Digital</span></div></div>
+  <nav id="nav"></nav>
+  <div class="side-end">
+    <div class="row">
+      <button class="btn sm gho" style="flex:1" onclick="openOut()" title="Open the folder with every result file">Output</button>
+      <button class="btn sm gho" style="flex:1" id="themeBtn" onclick="toggleTheme()">Light mode</button>
+    </div>
+    <div class="seg" id="langSeg"><button data-l="en" onclick="setLang('en')">English</button><button data-l="vi" onclick="setLang('vi')">Tiếng Việt</button></div>
+    <button class="btn sm gho" onclick="quit()">Quit</button>
+    <div class="ver keep" id="ver">Nam Doo</div>
+  </div>
+</aside>
+
+<main>
+  <header><h1 id="title"></h1><div class="sp"></div><div id="hstatus" class="status"></div></header>
+  <div class="wrap" id="view"></div>
+</main>
+<input type="file" id="fpick" class="hide">
+
+<script>
+const T = new URLSearchParams(location.search).get("t") || "";
+const $ = (id) => document.getElementById(id);
+$("logo").src = $("ico").href;
+
+const NAV = [
+  ["Reports", [["ksnv","KSNV Report"]]],
+  ["", [["upd","Update"]]],
+];
+const TITLES = {}; NAV.forEach(([,it]) => it.forEach(([k,t]) => TITLES[k] = t));
+const S = {};            // per-tool form state, kept while switching tools
+let CUR = "", VER = "", UPDINFO = null;
+const JOBS = {};         // tool -> last job view {state, lines, ...}
+let dead = 0;
+
+// ------------------------------------------------------------ helpers
+function esc(s){ return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function toast(msg){ const d = document.createElement("div"); d.className = "toast"; d.textContent = msg;
+  document.body.appendChild(d); setTimeout(() => d.remove(), 2600); }
+async function api(path, body){
+  const o = {headers:{"X-Token":T, "Content-Type":"application/json"}};
+  if(body !== undefined){ o.method = "POST"; o.body = JSON.stringify(body); }
+  let r;
+  try { r = await fetch(path, o); dead = 0; }
+  catch(e){ if(++dead >= 3) gone(); return {error:"offline"}; }
+  if(r.status === 403){ gone("This window is from an older start. Close it and open the tool again."); return {error:"token"}; }
+  try { return await r.json(); } catch(e){ return {error:"bad reply"}; }
+}
+function gone(msg){ document.body.innerHTML = '<div class="empty" style="margin:auto">' + esc(msg || "The tool has closed. Open it again from the shortcut.") + '</div>'; }
+function fmt(v){
+  if(v === null || v === undefined) return "";
+  if(typeof v === "number") return Number.isInteger(v) ? v.toLocaleString("vi-VN") : v.toLocaleString("vi-VN", {maximumFractionDigits:2});
+  return String(v);
+}
+function dl(path){ location.href = "/api/file?t=" + T + "&path=" + encodeURIComponent(path); }
+async function openPath(path, select){ const r = await api("/api/open", {path, select:!!select}); if(r.error) toast(r.error); }
+async function openUrl(url){ const r = await api("/api/open", {url}); if(r.error) toast(r.error); }
+function openOut(){ api("/api/open", {what:"output"}); }
+function st(tool){ return S[tool] || (S[tool] = {}); }
+
+// ------------------------------------------------------------ language: English / Tiếng Việt
+// The page is written in English. With Tiếng Việt on, every text is swapped right after it is drawn:
+// VI = exact text, VI_RE = text with numbers or names inside. Table cells (td), logs (pre) and file
+// chips are data and stay as they are (a td with class "t" is a label and is translated).
+let LANG = "en"; try { LANG = localStorage.getItem("ct_lang") === "vi" ? "vi" : "en"; } catch(e){}
+const VI = {
+  // shell
+  "Reports": "Báo cáo", "KSNV Report": "Báo cáo KSNV", "Report month": "Tháng báo cáo", "Input files": "File đầu vào",
+  "Data folder": "Folder dữ liệu", "Open": "Mở", "Open the data folder": "Mở folder dữ liệu", "Add files": "Thêm file",
+  "Import to data folder": "Nạp vào folder dữ liệu", "Imported": "Đã nạp",
+  "Shared OneDrive folder KSNV-Data. It keeps the policy history from 2025, so the tool can count the policies due for renewal.": "Folder OneDrive dùng chung KSNV-Data. Lưu lịch sử đơn từ 2025 để tool đếm được số đơn đến kỳ tái tục.",
+  "PIAS policy exports (So don 01 ... 08, any months), the revenue report (BAO CAO THUC HIEN), the XCG review file (Rà soát cấp đơn XCG), CG&TKT, last year's BC KSNV workbook. The tool tells them apart by itself; a month imported again replaces the old one.": "File xuất PIAS (So don 01 ... 08, tháng nào cũng được), file báo cáo doanh thu (BAO CAO THUC HIEN), file rà soát XCG (Rà soát cấp đơn XCG), CG&TKT, file BC KSNV năm trước. Tool tự nhận loại file; nạp lại tháng cũ thì thay bản cũ.",
+  "1. Import the PIAS exports (any line, any months), the revenue report and last year's BC KSNV into the data folder. 2. Pick the month and Preview: the tool reads the data folder and the KSNV Sheet and shows every value it would write. Nothing is written until you click Write.": "1. Nạp file xuất PIAS (line nào, tháng nào cũng được), file báo cáo doanh thu và BC KSNV năm trước vào folder dữ liệu. 2. Chọn tháng rồi bấm Xem trước: tool đọc folder dữ liệu và Sheet KSNV, hiện mọi số sẽ ghi. Chưa ghi gì cho tới khi bấm Ghi.",
+  "Files imported": "File đã nạp", "Skipped": "Bỏ qua", "Month files written": "File tháng đã ghi",
+  "Choose the KSNV data folder first.": "Chọn folder dữ liệu KSNV trước.", "Add the files to import.": "Thêm file cần nạp.", "Preview": "Xem trước", "Write": "Ghi",
+  "Write to Google Sheet": "Ghi lên Google Sheet", "Undo this write": "Hoàn tác lần ghi này", "Undo write": "Hoàn tác",
+  "Sign in to Google": "Đăng nhập Google", "Not signed in to Google": "Chưa đăng nhập Google", "Checking Google...": "Đang kiểm tra Google...",
+  "Finish the Google sign-in in the browser": "Hoàn tất đăng nhập Google trên trình duyệt", "Cancel": "Hủy",
+  "Sign in to Google first (top right).": "Đăng nhập Google trước (góc phải trên).",
+  "The cells are saved first, so the write can be undone.": "Tool lưu lại các ô cũ trước khi ghi, nên hoàn tác được.",
+  "Write to the KSNV Google Sheet: ": "Ghi lên Google Sheet KSNV: ", "Put the cells back as they were before this write?": "Đưa các ô về như trước lần ghi này?",
+  "Undo puts back the cells as they were before this write.": "Hoàn tác sẽ đưa các ô về như trước lần ghi này.",
+  "Parts written": "Phần đã ghi", "Cells": "Số ô", "Ranges to write": "Vùng sẽ ghi", "Restored": "Đã khôi phục",
+  "Output": "Kết quả", "Light mode": "Nền sáng", "Dark mode": "Nền tối", "Quit": "Thoát",
+  "Open the folder with every result file": "Mở thư mục chứa mọi file kết quả",
+  "Claims": "Bồi thường", "Certificates": "Giấy chứng nhận", "Data & Reconcile": "Dữ liệu và đối soát",
+  "Reconcile": "Đối soát", "Slips & invoices": "Phiếu và hóa đơn", "Update": "Cập nhật",
+  "This window is from an older start. Close it and open the tool again.": "Cửa sổ này thuộc lần mở trước. Đóng nó rồi mở lại tool.",
+  "The tool has closed. Open it again from the shortcut.": "Tool đã đóng. Mở lại từ shortcut.",
+  "Drop files here or click to choose": "Thả file vào đây hoặc bấm để chọn",
+  "Drop a file here or click to choose": "Thả một file vào đây hoặc bấm để chọn",
+  "uploading...": "đang tải lên...", "Remove": "Bỏ file này",
+  "Stopping, keeping what is done...": "Đang dừng, giữ phần đã xong...", "Stopped": "Đã dừng", "Stopped.": "Đã dừng.",
+  "Results show here.": "Kết quả hiện ở đây.", "Stop": "Dừng", "Log": "Nhật ký", "The run failed.": "Lượt chạy bị lỗi.",
+  "Technical detail": "Chi tiết kỹ thuật", "Details": "Chi tiết", "Open": "Mở", "Folder": "Thư mục",
+  "Save a copy to Downloads": "Lưu một bản vào thư mục Downloads", "Show the file in its folder": "Mở thư mục chứa file",
+  "No rows here.": "Không có dòng nào.", "Main columns only": "Chỉ hiện cột chính",
+  "Checking Fabric...": "Đang kiểm tra Fabric...", "Database driver missing": "Thiếu driver cơ sở dữ liệu", "Get driver": "Tải driver",
+  "Switch": "Đổi tài khoản", "Sign in with another account": "Đăng nhập bằng tài khoản khác",
+  "Not signed in to Fabric": "Chưa đăng nhập Fabric", "Sign in": "Đăng nhập", "Sign in to Fabric": "Đăng nhập Fabric",
+  "Open the Microsoft page, enter this code, then sign in with your PVI account.": "Mở trang Microsoft, nhập mã này rồi đăng nhập bằng tài khoản PVI.",
+  "Copy code": "Chép mã", "Open sign-in page": "Mở trang đăng nhập",
+  "This window moves on by itself once you are signed in.": "Đăng nhập xong cửa sổ này tự chạy tiếp.",
+  "Getting a sign-in code...": "Đang lấy mã đăng nhập...", "Cancel": "Hủy", "Getting the database driver...": "Đang tải driver cơ sở dữ liệu...",
+  "Code copied": "Đã chép mã", "Fabric sign-in": "Đăng nhập Fabric", "Get database driver": "Tải driver cơ sở dữ liệu",
+  "Database driver": "Driver cơ sở dữ liệu", "ready": "sẵn sàng", "Signed in": "Đã đăng nhập",
+  "Type the date as dd/mm/yyyy": "Gõ ngày theo dạng dd/mm/yyyy", "Reading the file...": "Đang đọc file...", "Reading the files...": "Đang đọc file...",
+  "File": "File", "Type": "Loại", "Run": "Chạy", "Options": "Tùy chọn", "Product": "Sản phẩm", "Template": "Template",
+  "Result": "Kết quả", "Detail": "Chi tiết từng dòng", "Total": "Tổng", "Rows": "Số dòng", "Pages": "Số trang", "Policies": "Số đơn",
+  // update
+  "Checking...": "Đang kiểm tra...", "Updates are not set up in this copy (app\\update.json has no repo).": "Bản này chưa cài nguồn cập nhật (app\\update.json chưa có repo).",
+  "This is the latest version.": "Đây là bản mới nhất.", "Version in use": "Bản đang dùng", "Check for updates": "Kiểm tra bản mới",
+  "Download and install": "Tải và cài bản mới", "Restart the tool": "Khởi động lại tool", "What is new": "Có gì mới",
+  "Install from a zip file": "Cài từ file zip", "When this PC cannot reach GitHub.": "Khi máy không vào được GitHub.", "Install": "Cài",
+  "Restarting...": "Đang khởi động lại...", "The tool is closed.": "Tool đã đóng.", "A tool is still running. Quit and stop it?": "Một tool vẫn đang chạy. Thoát và dừng nó?",
+  // errors from the server and the runs
+  "Uploaded file is gone, add it again.": "File đã tải lên không còn, thêm lại file.", "This tool is already running.": "Tool này đang chạy.",
+  "Wait for the running tools to finish.": "Chờ các tool đang chạy xong đã.", "Cannot read these files.": "Không đọc được các file này.",
+  "Not signed in to Fabric yet. Click 'Sign in' at the top of the page.": "Chưa đăng nhập Fabric. Bấm 'Đăng nhập' ở đầu trang.",
+  "The Fabric sign-in has expired. Click 'Sign in' at the top of the page.": "Phiên đăng nhập Fabric đã hết hạn. Bấm 'Đăng nhập' ở đầu trang.",
+  "No SQL Server driver on this PC. Click 'Get driver' at the top of the page.": "Máy chưa có driver SQL Server. Bấm 'Tải driver' ở đầu trang.",
+  "The chosen sheet has no claim rows to map.": "Sheet đã chọn không có dòng hồ sơ nào để map.", "No value to look up.": "Không có giá trị nào để tra.",
+  "No invoice link to get.": "Không có link hóa đơn nào để tải.", "Upload an .xlsx or .xlsm file.": "Tải lên file .xlsx hoặc .xlsm.",
+  "No policy row found. Upload the VCND and TNCN exports from PIAS.": "Không thấy dòng đơn nào. Tải lên file xuất VCND và TNCN từ PIAS.",
+  "No invoice link found in the file. If the links come from a formula, open the file in Excel, let it calculate, save and upload again.": "Không thấy link hóa đơn trong file. Nếu link do công thức tạo ra, mở file bằng Excel cho tính xong, lưu lại rồi tải lên lại.",
+  // Map Claim
+  "Add a claim file, pick the sheet and the product, then Map claims. You get the same file back with the Policy / RI columns and the Pias sheet added.": "Thêm file claim, chọn sheet và sản phẩm rồi bấm Map hồ sơ. Tool trả lại đúng file đó, thêm các cột Policy / RI và sheet Pias.",
+  "Claim file": "File claim", "Template & column guide": "Template và hướng dẫn cột",
+  "No mappable sheet. It needs a bảng kê (headers Số yêu cầu + IMEI/Serial) or an English Data sheet.": "Không có sheet map được. Cần sheet bảng kê (có cột Số yêu cầu + IMEI/Serial) hoặc sheet Data tiếng Anh.",
+  "Read as an English Data sheet (no Số yêu cầu column), so no Pias sheet is made.": "Sheet này đọc kiểu Data tiếng Anh (không có cột Số yêu cầu) nên không sinh sheet Pias.",
+  "Column details": "Chi tiết cột", "Column": "Cột", "In the file": "Tên trong file", "If missing": "Thiếu thì mất",
+  "Product of this batch": "Sản phẩm của đợt này", "Map claims": "Map hồ sơ",
+  "Keeps the match inside this product, so an EW policy of the same device is not picked by mistake.": "Giữ việc map trong đúng sản phẩm này để không vớ nhầm đơn EW của cùng thiết bị.",
+  "Sign in to Fabric first (top right).": "Đăng nhập Fabric trước (góc trên bên phải).",
+  "Mapped": "Map được", "Rows with note": "Dòng có lưu ý", "Columns the tool appends": "Các cột tool thêm vào",
+  // Check Salvage
+  "Add the file, then run. Rate cards come from rate_source.xlsm inside the tool.": "Thêm file rồi bấm chạy. Bảng giá lấy từ rate_source.xlsm trong tool.",
+  "Mode": "Chế độ", "Celebi · BBDS reconcile": "Celebi · đối soát BBDS", "Ecoswap · phone pricing": "Ecoswap · định giá ĐT",
+  "BBDS file (sheet BBDS)": "File BBDS (sheet BBDS)", "Phone list (sheet DT)": "Danh sách điện thoại (sheet DT)",
+  "The monthly reconciliation file from Celebi.": "File đối soát Celebi gửi hằng tháng.",
+  "Sheet DT: Model, IMEI, Sum Insured, Giá KH mua, GSC phân loại, purchase date, GS sent date.": "Sheet DT: Model, IMEI, Sum Insured, Giá KH mua, GSC phân loại, ngày mua, ngày GS gửi.",
+  "rate_source.xlsm is missing in app\\data.": "Thiếu file rate_source.xlsm trong app\\data.",
+  "Price Eco vs Celebi": "Định giá Eco và Celebi", "Celebi reconcile": "Đối soát Celebi", "Ecoswap vs Celebi pricing": "Định giá Ecoswap và Celebi",
+  "Devices": "Thiết bị", "Match": "Khớp", "Mismatch": "Lệch", "Phones": "Điện thoại",
+  "Higher = Ecoswap": "Nhà cao hơn = Ecoswap", "Higher = Celebi": "Nhà cao hơn = Celebi", "By group": "Theo nhóm",
+  // Check Invoice
+  "Add the device list, pick a speed, then Start. KHỚP = declared price matches the invoice, LỆCH = check again, KHÔNG TRA ĐƯỢC = check by hand.": "Thêm danh sách máy, chọn tốc độ rồi bấm Bắt đầu. KHỚP = giá khai khớp hóa đơn, LỆCH = cần xem lại, KHÔNG TRA ĐƯỢC = phải rà tay.",
+  "Device list": "Danh sách máy", "Columns: IMEI/Serial · SĐT · Số HĐ · Giá KH mua · Model.": "Các cột: IMEI/Serial · SĐT · Số HĐ · Giá KH mua · Model.",
+  "Speed": "Tốc độ", "Light": "Nhẹ", "Balanced": "Vừa", "Fast": "Nhanh", "Start": "Bắt đầu",
+  "Light = 3 lookups at a time, least likely to be blocked by TGDĐ.": "Nhẹ = 3 lượt tra cùng lúc, ít bị TGDĐ chặn nhất.",
+  "Stopped part way: the file holds the devices looked up before the stop.": "Đã dừng giữa chừng: file có các máy tra được trước khi dừng.",
+  // Generate GCNBH
+  "Add the Excel file from PIAS, then Generate. A sheet named with GCN gives original certificates, with SĐBS gives endorsements.": "Thêm file Excel xuất từ PIAS rồi bấm Tạo giấy. Sheet tên có chữ GCN ra giấy gốc, có chữ SĐBS ra sửa đổi bổ sung.",
+  "Excel file from PIAS": "File Excel từ PIAS", "The product code is in the sheet name, for example GCN gốc BHMR.": "Mã sản phẩm nằm trong tên sheet, ví dụ GCN gốc BHMR.",
+  "Merged file as PDF (uses Word)": "Bản gộp xuất PDF (dùng Word)", "Word is not installed on this PC, the merged file stays .docx.": "Máy này không có Word, bản gộp giữ dạng .docx.",
+  "Generate": "Tạo giấy",
+  "Word templates in the app": "Mẫu Word trong app", "Updated": "Cập nhật", "View": "Xem", "Download": "Tải về",
+  "No SĐBS template: endorsements cannot be made.": "Chưa có mẫu SĐBS: không tạo được sửa đổi bổ sung.",
+  "View opens a copy in Word, the template the tool uses stays as it is. To change a template, send the new Word file to Nam.":
+    "Xem sẽ mở một bản sao bằng Word, mẫu tool đang dùng giữ nguyên. Muốn đổi mẫu thì gửi file Word mới cho anh Nam.",
+  "Open the templates folder": "Mở thư mục chứa mẫu",
+  // Search GCNBH
+  "Add a claim file (any file with policy numbers like 25/45/09/KHAC/P000123) or paste numbers, then Search.": "Thêm file claim (file bất kỳ có số đơn dạng 25/45/09/KHAC/P000123) hoặc dán số đơn rồi bấm Tìm.",
+  "Claim file (optional)": "File claim (không bắt buộc)", "Sheets to read": "Sheet lấy số đơn", "Or paste policy numbers": "Hoặc dán số hợp đồng",
+  "Product of the claims": "Sản phẩm của hồ sơ", "Auto (from the file)": "Tự nhận theo file", "All products": "Tất cả sản phẩm",
+  "Choose products": "Chọn sản phẩm", "Tick one or more products.": "Tick một hoặc nhiều sản phẩm.",
+  "One policy number can have certificates of several products. Auto reads the Product column, else the file name.": "Một số đơn có thể có GCN của nhiều sản phẩm. Tự nhận lấy theo cột Product, không có thì theo tên file.",
+  "Search": "Tìm", "OneDrive folder found": "Đã thấy thư mục OneDrive", "OneDrive folder still not on this PC": "Máy này vẫn chưa có thư mục OneDrive", "Check the OneDrive folder again": "Kiểm tra lại thư mục OneDrive", "Refresh": "Làm mới", "Print": "In", "Max pages per PDF": "Số trang tối đa mỗi file PDF",
+  "Include XMP (each XMP once, right after the first certificate using it)": "Kèm XMP (mỗi XMP in 1 lần, ngay sau GCN đầu tiên dùng nó)",
+  "Only rows with exactly one certificate (Tìm thấy). Open the others from their links.": "Chỉ lấy các dòng có đúng 1 giấy (Tìm thấy). Các dòng khác mở từ link.",
+  "Merge certificates to PDF": "Gộp GCN thành PDF", "PDF files": "Số file PDF",
+  // Search Database
+  "Type IMEI, phone, policy number or request ID on the left, then Search. Returns every premium row that matches, cancellations and /E versions included.": "Nhập IMEI, số điện thoại, số hợp đồng hoặc mã giao dịch bên trái rồi bấm Tìm. Trả về mọi dòng phí khớp, kể cả dòng hủy và các bản sửa đổi /E.",
+  "Search by": "Tra theo", "Auto": "Tự động", "Phone": "SĐT", "Policy": "Số HĐ", "Request ID": "Mã GD",
+  "A value with / is a policy number; the rest go IMEI, then request ID, then phone, the same order as Map Claim.": "Giá trị có dấu / là số hợp đồng; còn lại tra lần lượt IMEI, mã giao dịch, số điện thoại, đúng thứ tự của Map Claim.",
+  "Prefix match: 25/45/09/KHAC/P000028 also returns /E01, /E02.": "Khớp tiền tố: 25/45/09/KHAC/P000028 ra cả /E01, /E02.",
+  "Matches the last 9 digits.": "Khớp 9 số cuối.", "Values, one per line": "Giá trị, mỗi dòng một giá trị", "Row limit": "Giới hạn số dòng",
+  "A merged policy number can have over 12,000 premium rows. Raise the limit if the result is cut.": "Một số hợp đồng gộp có thể trên 12.000 dòng phí. Kết quả bị cắt thì nâng giới hạn.",
+  "Values": "Giá trị tra", "Found": "Tìm thấy", "Premium rows": "Dòng phí",
+  // Reconcile TGDD
+  "Weekly: the week's PIAS or PVI Connect file gives the discounted-fee file. Monthly: the weekly result files against the ĐMX file.": "Theo tuần: file PIAS hoặc PVI Connect của tuần ra file phí sau giảm. Theo tháng: các file tuần đã tính phí đối soát với file ĐMX.",
+  "Job": "Việc", "Weekly · discounted fee": "Tuần · phí sau giảm", "Monthly · vs ĐMX": "Tháng · đối soát ĐMX",
+  "Week data file": "File dữ liệu tuần", "PIAS or PVI Connect export, the tool tells which.": "File xuất PIAS hoặc PVI Connect, tool tự nhận.",
+  "Weekly result files of the month": "Các file tuần đã tính phí của tháng", "ĐMX file (sheets BÁN and HỦY)": "File ĐMX (sheet BÁN và HỦY)",
+  "Rules file": "Bảng rule", "Download the rules in use": "Tải bảng rule đang dùng",
+  ". To try another one for this run only, add it here.": ". Muốn dùng tạm bảng khác cho lượt này thì thêm vào đây.",
+  "Use another rules file (optional)": "Dùng bảng rule khác (không bắt buộc)", "Compute discounted fee": "Tính phí sau giảm",
+  "Reconcile month": "Đối soát tháng", "Weekly discounted fee": "Phí sau giảm theo tuần", "Monthly reconcile": "Đối soát tháng",
+  "Match (case 1)": "Khớp (case 1)", "Fee diff (2 + 9)": "Lệch phí (2 + 9)", "One side only (4 + 5)": "Chỉ một bên ghi nhận (4 + 5)", "By case": "Theo trường hợp",
+  // D2C VNPAY
+  "Add the files of the month, then Run. You get the reconciliation workbook with the Cảnh báo and Treo sheets.": "Thêm các file của tháng rồi bấm Chạy. Kết quả là file đối soát có sheet Cảnh báo và Treo.",
+  "Files of the month": "File của tháng", "Drop the 8 files here or click to choose": "Thả 8 file vào đây hoặc bấm để chọn",
+  "VNPAY*.xlsx (1), ADMIN*.csv (2), PIAS*.xlsx (4), *HÓA ĐƠN THU PHÍ*.xlsx (1). The type is read from the file name.": "VNPAY*.xlsx (1), ADMIN*.csv (2), PIAS*.xlsx (4), *HÓA ĐƠN THU PHÍ*.xlsx (1). Loại file nhận theo tên file.",
+  "Excel is not on this PC, so the formulas are not recalculated. Open the result in Excel once before sending.": "Máy này không có Excel nên công thức chưa được tính lại. Mở file kết quả bằng Excel một lần trước khi gửi.",
+  "Successful transactions": "Giao dịch thành công", "Matched to Admin": "Khớp Admin", "With policy no.": "Có số đơn",
+  "Formulas were not recalculated (Excel not found). Open the file in Excel once to refresh them.": "Công thức chưa được tính lại (không có Excel). Mở file bằng Excel một lần để cập nhật.",
+  "VNPAY statement": "Sao kê VNPAY", "Admin export": "File xuất Admin", "PIAS export": "File xuất PIAS", "Invoice ledger": "Sổ hóa đơn thu phí",
+  "Not used": "Không dùng", "Request list": "Danh sách yêu cầu", "Not recognised": "Không nhận ra",
+  "D2C VNPAY reconciliation": "Đối soát D2C VNPAY",
+  // PTT slips
+  "Add the VCND and TNCN exports from PIAS. The period is filled in from the files, check it, then Make slips.": "Thêm file xuất VCND và TNCN từ PIAS. Kỳ được điền sẵn từ file, kiểm tra lại rồi bấm Tạo phiếu.",
+  "PIAS exports": "File xuất PIAS", "Drop the VCND and TNCN exports here": "Thả file xuất VCND và TNCN vào đây",
+  "Straight from PIAS, no editing. One of the two alone also works.": "Lấy thẳng từ PIAS, không cần sửa. Chỉ có một trong hai file cũng chạy được.",
+  "Period": "Kỳ", "From (Ngày đầu)": "Từ (Ngày đầu)", "To (Ngày cuối)": "Đến (Ngày cuối)", "Slip date": "Ngày lập phiếu",
+  "The Ngày cuối has to be after the Ngày đầu.": "Ngày cuối phải sau Ngày đầu.", "No policy starts inside this period in these files.": "Trong kỳ này không có đơn nào bắt đầu.",
+  "Make slips": "Tạo phiếu", "Slips": "Số phiếu", "Slip": "Phiếu", "Premium": "Phí", "PTT slips": "PTT slips",
+  // Invoice PDFs
+  "Add the Excel file with the invoice links. Duplicate links are dropped, the PDFs come back merged in row order, ready to print.": "Thêm file Excel có link hóa đơn. Link trùng được bỏ, PDF trả về gộp theo thứ tự dòng, sẵn để in.",
+  "File with invoice links": "File có link hóa đơn",
+  "The column with the most links is used. Links from a formula are read from the values Excel saved last time.": "Tool dùng cột có nhiều link nhất. Link tạo bằng công thức lấy theo giá trị Excel đã lưu lần cuối.",
+  "Invoices to get": "Hóa đơn cần tải", "Duplicates removed": "Link trùng đã bỏ", "Get PDFs": "Tải PDF", "PDFs merged": "PDF đã gộp",
+  "Invoices": "Hóa đơn", "Invoice": "Hóa đơn", "Status": "Trạng thái", "No": "STT", "Row": "Dòng",
+  // Invoice requests (XHD)
+  "Add the request list, the HÓA ĐƠN THU PHÍ export and the PIAS exports. You get the slips on request, the bulk slips and the Excel files in one zip.": "Thêm danh sách yêu cầu, file HÓA ĐƠN THU PHÍ và file xuất PIAS. Kết quả là phiếu theo yêu cầu, phiếu gom khách lẻ và các file Excel trong một file zip.",
+  "Files": "File", "Drop the request list, HÓA ĐƠN THU PHÍ and PIAS exports here": "Thả danh sách yêu cầu, HÓA ĐƠN THU PHÍ và file xuất PIAS vào đây",
+  "Add the invoice ledger (HÓA ĐƠN THU PHÍ export).": "Thêm file HÓA ĐƠN THU PHÍ.", "Add the request list and/or the PIAS exports.": "Thêm danh sách yêu cầu và/hoặc file xuất PIAS.",
+  "Bulk from (Ngày cấp đơn)": "Gom từ (Ngày cấp đơn)", "Bulk to": "Gom đến", "The end date has to be on or after the start date.": "Ngày cuối phải bằng hoặc sau ngày đầu.",
+  "Auto-fill company names and vehicle fees": "Tự điền tên công ty và phí xe", "Invoice requests": "Yêu cầu xuất hóa đơn",
+  "Slips on request": "Phiếu theo yêu cầu", "Bulk slips": "Phiếu gom", "Note": "Ghi chú", "On request": "Theo yêu cầu",
+  "Tax ID printouts (Cục Thuế)": "Bản in tra cứu MST (Cục Thuế)", "Looking up on the tax site...": "Đang tra trên trang Cục Thuế...",
+  "Captcha": "Captcha", "Look up": "Tra cứu", "New captcha": "Captcha mới", "Skip": "Bỏ qua",
+  "Could not read the captcha automatically, type it below.": "Không tự đọc được captcha, gõ vào ô bên dưới.",
+  "Wrong captcha, try the new one.": "Sai captcha, thử captcha mới.",
+  "The tax site kept sending the request to another server, type the new captcha.": "Trang Cục Thuế chuyển yêu cầu sang máy khác, gõ captcha mới.",
+  "Tax ID": "MST", "Company": "Công ty", "Tax site result": "Kết quả tra cứu",
+  "Saved": "Đã lưu", "Saved, check": "Đã lưu, cần xem lại", "Skipped": "Bỏ qua", "Not found": "Không tìm thấy",
+  // KBank
+  "Add the masterfile, check the password and the issue date, then Generate certificates.": "Thêm masterfile, kiểm tra mật khẩu và ngày cấp rồi bấm Tạo giấy chứng nhận.",
+  "Output format": "Kiểu file xuất", "Separate files (.zip)": "File lẻ (.zip)", "One merged Word file": "Một file Word gộp",
+  "Every certificate in one .docx, one per page, easier to print.": "Mọi giấy trong một file .docx, mỗi giấy một trang, dễ in.",
+  "A .zip of individual .docx files, one per person.": "File .zip gồm các file .docx lẻ, mỗi người một file.",
+  "Excel file password": "Mật khẩu file Excel", "The masterfile is encrypted. Leave the default unless it changed.": "Masterfile có mật khẩu. Giữ mặc định trừ khi đã đổi.",
+  "Issue date printed on each certificate": "Ngày cấp in trên từng giấy", "Generate certificates": "Tạo giấy chứng nhận",
+  "Check before sending": "Kiểm tra trước khi gửi"
+};
+const VI_RE = [
+  [/^(\w+): no policy in this period, no slip produced\.$/, "$1: không có đơn trong kỳ, không ra phiếu."],
+  [/^(.+): No policy number in the request \(PVI Policy GCN is empty\)\.$/, "$1: yêu cầu không có số đơn (cột PVI Policy GCN trống)."],
+  [/^PIAS: (\d+) repeated row\(s\) \(one per insured person\) counted once\.$/, "PIAS: $1 dòng lặp (mỗi người được BH một dòng) chỉ tính một lần."],
+  [/^Bulk: every policy in the PIAS export already has an invoice or a request\.$/, "Gom: mọi đơn trong file PIAS đã có hóa đơn hoặc yêu cầu."],
+  [/^Dong (\d+): thieu So GCNBH\.$/, "Dòng $1: thiếu Số GCNBH."],
+  [/^Download (.+)$/, "Tải về $1"],
+  [/^Done in (\d+) min (\d+) s$/, "Xong trong $1 phút $2 giây"], [/^Done in (\d+) s$/, "Xong trong $1 giây"],
+  [/^(\d+) min (\d+) s$/, "$1 phút $2 giây"], [/^(\d+) s$/, "$1 giây"],
+  [/^Showing (\d+) of ([\d,.]+) rows\. The file has all of them\.$/, "Đang hiện $1 trên $2 dòng. File tải về có đủ."],
+  [/^(\d+) warnings?$/, "$1 cảnh báo"], [/^Separate files \((\d+)\)$/, "File lẻ ($1)"],
+  [/^All \((\d+)\)$/, "Tất cả ($1)"], [/^With note \((\d+)\)$/, "Có lưu ý ($1)"], [/^Not mapped \((\d+)\)$/, "Không map được ($1)"],
+  [/^SI diff \((\d+)\)$/, "SI lệch ($1)"], [/^Mismatch \((\d+)\)$/, "Lệch ($1)"], [/^Match \((\d+)\)$/, "Khớp ($1)"],
+  [/^Higher = (\w+) \((\d+)\)$/, "Nhà cao hơn = $1 ($2)"], [/^Failed \((\d+)\)$/, "Lỗi ($1)"],
+  [/^Fabric ready · (.+)$/, "Fabric sẵn sàng · $1"], [/^Sign-in failed: (.*)$/, "Đăng nhập lỗi: $1"],
+  [/^(.+) · bảng kê, (\d+) rows$/, "$1 · bảng kê, $2 dòng"], [/^(.+) · Data \(English\)$/, "$1 · Data (tiếng Anh)"],
+  [/^Reads (\d+)\/(\d+) columns\. Missing: (.+)\. It still runs, check the details first\.$/, "Đọc được $1/$2 cột. Thiếu: $3. Vẫn chạy được, xem chi tiết trước khi bấm."],
+  [/^Reads all (\d+)\/(\d+) columns\.$/, "Đọc đủ $1/$2 cột."],
+  [/^Sheet '(.+)' · product (.+) · match key (.+)$/, "Sheet '$1' · sản phẩm $2 · khóa map $3"],
+  [/^SI mismatch (\d+)$/, "Lệch SI $1"], [/^Cancelled \/ recreated (\d+)$/, "Đơn hủy / tạo lại $1"], [/^Pias sheet (\d+) rows$/, "Sheet Pias $1 dòng"],
+  [/^(\d+) devices · ([\d.]+) min$/, "$1 máy · $2 phút"],
+  [/^Word templates \((\d+) products\)$/, "Mẫu Word ($1 sản phẩm)"], [/^\((\d+) policies\)$/, "($1 số đơn)"],
+  [/^OneDrive folder "(.+)" not on this PC$/, "Máy này chưa có thư mục OneDrive \"$1\""],
+  [/^Merge (\d+) found certificates into PDF$/, "Gộp $1 GCN tìm thấy thành PDF"],
+  [/^(\d+) values?, only the first 500 are looked up$/, "$1 giá trị, chỉ tra 500 giá trị đầu"], [/^(\d+) values?$/, "$1 giá trị"],
+  [/^(\d+) weekly file\(s\) · (\d+) result rows$/, "$1 file tuần · $2 dòng kết quả"],
+  [/^Product (.+) · sheet (.+) · header row (.+)$/, "Sản phẩm $1 · sheet $2 · dòng tiêu đề $3"],
+  [/^Cannot check: (.*)$/, "Không kiểm tra được: $1"], [/^Version (.+) is available\.$/, "Đã có bản $1."],
+  [/^Cannot connect to Fabric\. Check the network and that your account can open the Equipment workspace\. (.*)$/, "Không kết nối được Fabric. Kiểm tra mạng và quyền vào workspace Equipment. $1"],
+  [/^OneDrive folder '(.+)' not found on this PC\. Ask P\.TBHH to share it, then in OneDrive on the web choose 'Add shortcut to My files'\.$/, "Máy này chưa có thư mục OneDrive '$1'. Nhờ P.TBHH share, rồi trên OneDrive web chọn 'Add shortcut to My files'."],
+  [/^Unexpected error: (.*)$/, "Lỗi không lường trước: $1"], [/^The run ended with code (.+)\.$/, "Lượt chạy kết thúc với mã $1."],
+  [/^Bad date: (.*)$/, "Ngày không hợp lệ: $1"], [/^Cannot reach the tax site \((.+)\)\.$/, "Không vào được trang Cục Thuế ($1)."],
+  [/^Period (.+) · (.+) transactions in the VNPAY file · invoice no\. found for (.+)$/, "Kỳ $1 · $2 giao dịch trong file VNPAY · tìm được số hóa đơn cho $3"],
+  [/^(\d+) formula errors in the file\. Check before sending\.$/, "File có $1 lỗi công thức. Kiểm tra trước khi gửi."],
+  [/^Missing the VNPAY statement\.$/, "Thiếu sao kê VNPAY."], [/^Missing the Admin export\.$/, "Thiếu file xuất Admin."],
+  [/^Missing the PIAS export\.$/, "Thiếu file xuất PIAS."], [/^Missing the Invoice ledger\.$/, "Thiếu file HÓA ĐƠN THU PHÍ."],
+  [/^Upload only one (.+) file\.$/, "Chỉ tải lên một file $1."],
+  [/^(.+): (\d+) of (\d+) files\. Rows of the missing ones will not be matched\.$/, "$1: có $2/$3 file. Dòng của file thiếu sẽ không khớp được."],
+  [/^Ngày đầu in the files: (.*)$/, "Ngày đầu trong file: $1"],
+  [/^(\d+) policies covered by 22h01 (.+) → 22h00 (.+)\.$/, "$1 đơn trong kỳ 22h01 $2 → 22h00 $3."],
+  [/^Skip hidden rows \((\d+)\)$/, "Bỏ dòng ẩn ($1)"], [/^Sheet (.+), column (.+), (\d+) links\.$/, "Sheet $1, cột $2, $3 link."],
+  [/^Sheet (.+), column (.+)$/, "Sheet $1, cột $2"], [/^(\d+) link\(s\) failed, see the table\.$/, "$1 link lỗi, xem bảng."],
+  [/^(\d+) of (\d+) done\. Each printout is added to the zip above\.$/, "Đã xong $1/$2. Mỗi bản in được thêm vào file zip ở trên."]
+];
+const ORIG = new WeakMap();
+function tr(s){
+  if(LANG !== "vi" || !s) return s;
+  const k = s.trim(); if(!k) return s;
+  let v = VI[k];
+  if(v === undefined) for(const [re, to] of VI_RE){ if(re.test(k)){ v = k.replace(re, to); break; } }
+  return v === undefined ? s : s.replace(k, v);
+}
+const KEEP = "td:not(.t),pre,code,textarea,.chip span,.keep";
+function trNode(n){
+  const p = n.parentElement; if(!p || p.closest(KEEP)) return;
+  const v = tr(n.nodeValue);
+  if(v !== n.nodeValue){ if(!ORIG.has(n)) ORIG.set(n, n.nodeValue); n.nodeValue = v; }
+}
+function trAttrs(el){
+  if(el.closest && el.closest(KEEP)) return;
+  for(const a of ["placeholder", "title"]){
+    const v0 = el.getAttribute(a); if(!v0) continue;
+    const v = tr(v0);
+    if(v !== v0){ if(!el.hasAttribute("data-en-" + a)) el.setAttribute("data-en-" + a, v0); el.setAttribute(a, v); }
+  }
+}
+function localize(root){
+  if(LANG !== "vi" || !root) return;
+  if(root.nodeType === 3) return trNode(root);
+  if(root.nodeType !== 1) return;
+  trAttrs(root); root.querySelectorAll("[placeholder],[title]").forEach(trAttrs);
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); let n;
+  while((n = w.nextNode())) trNode(n);
+}
+function unlocalize(){
+  const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT); let n;
+  while((n = w.nextNode())) if(ORIG.has(n)){ n.nodeValue = ORIG.get(n); ORIG.delete(n); }
+  document.querySelectorAll("[data-en-placeholder],[data-en-title]").forEach(el => {
+    for(const a of ["placeholder", "title"]){ const v = el.getAttribute("data-en-" + a); if(v !== null){ el.setAttribute(a, v); el.removeAttribute("data-en-" + a); } }
+  });
+}
+new MutationObserver(ms => { if(LANG !== "vi") return; for(const m of ms) m.addedNodes.forEach(localize); })
+  .observe(document.body, {childList:true, subtree:true});
+function setLang(l){
+  LANG = l === "vi" ? "vi" : "en";
+  try { localStorage.setItem("ct_lang", LANG); } catch(e){}
+  document.documentElement.lang = LANG;
+  document.querySelectorAll("#langSeg button").forEach(b => b.classList.toggle("on", b.dataset.l === LANG));
+  if(LANG === "vi") localize(document.body); else unlocalize();
+}
+
+// ------------------------------------------------------------ nav + theme
+function drawNav(){
+  let h = "";
+  NAV.forEach(([g, items]) => {
+    if(g) h += '<div class="grp-h">' + esc(g) + '</div>'; else h += '<div class="grp-h">&nbsp;</div>';
+    items.forEach(([k, t]) => {
+      const j = JOBS[k]; let dot = "";
+      if(j && j.state === "running") dot = "run";
+      else if(k === "upd" && UPDINFO && UPDINFO.available) dot = "new";
+      h += '<button id="nav-' + k + '" class="' + (k === CUR ? "on" : "") + '" onclick="go(\'' + k + '\')">' +
+           esc(t) + '<span class="dot ' + dot + '"></span></button>';
+    });
+  });
+  $("nav").innerHTML = h;
+}
+function setTheme(t){ document.documentElement.dataset.theme = t; $("themeBtn").textContent = t === "dark" ? "Light mode" : "Dark mode";
+  try { localStorage.setItem("ct_theme", t); } catch(e){} }
+function toggleTheme(){ setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"); }
+try { setTheme(localStorage.getItem("ct_theme") || "dark"); } catch(e){ setTheme("dark"); }
+
+function go(k){
+  CUR = k; try { localStorage.setItem("ct_tool", k); } catch(e){}
+  $("title").textContent = TITLES[k] || "";
+  drawNav(); draw();
+  if(k === "ksnv") loadGoogle();
+}
+function draw(){
+  const f = VIEWS[CUR]; $("hstatus").innerHTML = "";
+  $("view").innerHTML = f ? f() : "";
+  if(HEAD[CUR]) HEAD[CUR]();
+  if(AFTER[CUR]) AFTER[CUR]();
+  drawRun(CUR);
+}
+
+// ------------------------------------------------------------ file fields
+// field(tool, key, accept, multi): a drop area + chosen files; files upload at once, the run sends their ids
+function field(tool, key, accept, multi, label){
+  const s = st(tool), files = s[key] || [];
+  let h = '<div class="drop" ondragover="event.preventDefault();this.classList.add(\'on\')" ondragleave="this.classList.remove(\'on\')" ' +
+          'ondrop="dropFiles(event,\'' + tool + '\',\'' + key + '\',' + (multi ? 1 : 0) + ')" ' +
+          'onclick="pick(\'' + tool + '\',\'' + key + '\',\'' + accept + '\',' + (multi ? 1 : 0) + ')">' +
+          esc(label || (multi ? "Drop files here or click to choose" : "Drop a file here or click to choose")) + '</div>';
+  if(files.length){
+    h += '<div class="chips">' + files.map((f, i) => '<div class="chip"><span title="' + esc(f.name) + '">' + esc(f.name) +
+         '</span><i>' + (f.up ? "uploading..." : Math.max(1, Math.round(f.size/1024)).toLocaleString() + " KB") +
+         '</i><button title="Remove" onclick="unpick(\'' + tool + '\',\'' + key + '\',' + i + ')">×</button></div>').join("") + '</div>';
+  }
+  return h;
+}
+function pick(tool, key, accept, multi){
+  const fp = $("fpick"); fp.value = ""; fp.accept = accept; fp.multiple = !!multi;
+  fp.onchange = () => addFiles(tool, key, [...fp.files], multi);
+  fp.click();
+}
+function dropFiles(ev, tool, key, multi){ ev.preventDefault(); ev.currentTarget.classList.remove("on");
+  addFiles(tool, key, [...ev.dataTransfer.files], multi); }
+async function addFiles(tool, key, list, multi){
+  if(!list.length) return;
+  const s = st(tool);
+  if(!multi){ list = list.slice(0, 1); s[key] = []; }
+  s[key] = s[key] || [];
+  const items = list.map(f => ({name:f.name, size:f.size, up:true}));
+  s[key].push(...items);
+  if(CUR === tool) draw();
+  for(let i = 0; i < list.length; i++){
+    let r;
+    try {
+      const res = await fetch("/api/upload?t=" + T + "&name=" + encodeURIComponent(list[i].name), {method:"POST", body:list[i]});
+      r = await res.json();
+    } catch(e){ r = {error:"upload failed"}; }
+    if(r.error){ toast(list[i].name + ": " + r.error); s[key] = s[key].filter(x => x !== items[i]); }
+    else { items[i].id = r.id; items[i].up = false; }
+  }
+  if(ONFILE[tool]) await ONFILE[tool](key);
+  if(CUR === tool) draw();
+}
+function unpick(tool, key, i){ const s = st(tool); s[key].splice(i, 1); if(ONFILE[tool]) ONFILE[tool](key, true); draw(); }
+function ready(tool, key){ const f = st(tool)[key] || []; return f.length && f.every(x => x.id); }
+function ids(tool, key){ return (st(tool)[key] || []).map(x => x.id); }
+function seg(tool, key, opts, onchg){
+  const v = st(tool)[key];
+  return '<div class="seg">' + opts.map(([k, t]) => '<button class="' + (v === k ? "on" : "") + '" onclick="S[\'' + tool +
+         '\'][\'' + key + '\']=\'' + k + '\';' + (onchg || "") + 'draw()">' + esc(t) + '</button>').join("") + '</div>';
+}
+function tmplLink(name, label){ return '<button class="link" onclick="location.href=\'/api/template?t=' + T + '&name=' + name + '\'">' + esc(label) + '</button>'; }
+
+// ------------------------------------------------------------ run + result panel
+async function run(tool, args, label){
+  const r = await api("/api/run", {tool, args, label});
+  if(r.error){ toast(r.error); return; }
+  JOBS[tool] = {state:"running", lines:[], total:0, progress:null, label, result:null};
+  drawNav(); if(CUR === tool || panelFor(CUR).includes(tool)) draw(); else drawRun(CUR); poll();
+  const box = $("run-" + tool); if(box) box.scrollIntoView({block:"nearest", behavior:"smooth"});
+}
+async function stopJob(tool){ await api("/api/stop", {tool}); toast("Stopped"); }
+let polling = null;
+function poll(){
+  if(polling) return;
+  polling = setInterval(async () => {
+    const live = Object.keys(JOBS).filter(t => JOBS[t].state === "running");
+    if(!live.length){ clearInterval(polling); polling = null; return; }
+    for(const t of live){
+      const j = JOBS[t];
+      const r = await api("/api/job?tool=" + t + "&since=" + (j.total || 0));
+      if(!r.job) continue;
+      const v = r.job;
+      j.lines = (j.lines || []).concat(v.lines); j.total = v.total;
+      Object.assign(j, {state:v.state, progress:v.progress, code:v.code, error:v.error, result:v.result, dir:v.dir, elapsed:v.elapsed});
+      if(v.state !== "running"){ drawNav(); if(DONE[t]) DONE[t](j); if(t === CUR || panelFor(CUR).includes(t)){ draw(); continue; } }
+      if(t === CUR || panelFor(CUR).includes(t) || (t === "gsignin" && CUR === "ksnv")) drawRun(CUR);
+    }
+  }, 700);
+}
+function panelFor(tool){ return tool === "upd" ? ["update"] : tool === "ksnv" ? ["ksnv", "ksnvw"] : [tool]; }
+function drawRun(tool){
+  if(HEAD[tool]) HEAD[tool]();
+  panelFor(tool).forEach(t => {
+    const box = $("run-" + t); if(!box) return;
+    const j = JOBS[t];
+    if(!j){ box.innerHTML = '<div class="empty">' + esc(EMPTY[t] || "Results show here.") + '</div>'; return; }
+    box.innerHTML = runHtml(t, j);
+  });
+}
+function runHtml(t, j){
+  let h = "";
+  if(j.state === "running"){
+    const p = j.progress, pct = p && p.total ? Math.round(100 * p.done / p.total) : 0;
+    h += '<div class="runhead"><span class="spin"></span><b>' + esc(j.label) + '</b><span class="muted">' + esc(secs(j.elapsed)) + '</span><div class="sp"></div>' +
+         '<button class="btn sm gho" onclick="stopJob(\'' + t + '\')">Stop</button></div>';
+    if(p){ h += '<div class="bar"><div style="width:' + pct + '%"></div></div><div class="barlbl"><span>' + esc(p.label) + '</span><span>' +
+         p.done + '/' + p.total + '</span></div>'; }
+    else if(j.lines && j.lines.length){ h += '<div class="caption">' + esc(j.lines[j.lines.length - 1]) + '</div>'; }
+    h += det("log-" + t, "Log", '<pre>' + esc((j.lines || []).join("\n")) + '</pre>');
+    return h;
+  }
+  if(j.state === "failed" || j.state === "stopped"){
+    h += '<div class="runhead"><b>' + esc(j.label) + '</b><div class="sp"></div><span class="muted">' + esc(secs(j.elapsed)) + '</span></div>';
+    h += '<div class="note bad">' + esc(j.state === "stopped" ? "Stopped." : (j.error || "The run failed.")) + '</div>';
+    if(j.result && j.result.trace) h += det("tr-" + t, "Technical detail", '<pre>' + esc(j.result.trace) + '</pre>');
+    h += det("log-" + t, "Log", '<pre>' + esc((j.lines || []).join("\n")) + '</pre>');
+    return h;
+  }
+  return '<div class="runhead"><b>' + esc(j.label) + '</b><div class="sp"></div><span class="muted">Done in ' + esc(secs(j.elapsed)) + '</span></div>' +
+         resultHtml(t, j.result || {}, j) + det("log-" + t, "Log", '<pre>' + esc((j.lines || []).join("\n")) + '</pre>');
+}
+const OPEN = {};
+function det(k, summary, body){
+  return '<details data-k="' + k + '" ontoggle="OPEN[this.dataset.k]=this.open" ' + (OPEN[k] ? "open" : "") + '><summary>' + summary + '</summary>' + body + '</details>';
+}
+function secs(s){ if(s === undefined) return ""; s = +s; return s < 60 ? s + " s" : Math.floor(s/60) + " min " + (s % 60) + " s"; }
+function resultHtml(t, r, j){
+  let h = "";
+  if(r.stats && r.stats.length) h += '<div class="stats">' + r.stats.map(s => '<div class="stat"><div title="' + esc(s.label) + '">' + esc(s.label) +
+       '</div><b class="' + esc(s.tone || "") + '" title="' + esc(fmt(s.value)) + '">' + esc(fmt(s.value)) + '</b></div>').join("") + '</div>';
+  if(r.warns && r.warns.length) h += '<div class="note warn"><b>' + r.warns.length + ' warning' + (r.warns.length > 1 ? "s" : "") + '</b><ul>' +
+       r.warns.map(w => '<li>' + esc(w) + '</li>').join("") + '</ul></div>';
+  if(r.files && r.files.length){
+    h += '<div class="files">' + r.files.map(f => '<div class="file"><button class="btn pri" onclick="dl(' + esc(JSON.stringify(f.path)) + ')" title="Save a copy to Downloads">Download ' + esc(f.name) +
+         '</button><button class="btn" onclick="openPath(' + esc(JSON.stringify(f.path)) + ')">Open</button><button class="btn gho" onclick="openPath(' +
+         esc(JSON.stringify(f.path)) + ',1)" title="Show the file in its folder">Folder</button></div>').join("") + '</div>';
+  }
+  if(r.notes && r.notes.length) h += '<div class="caption">' + r.notes.map(n => '<span>' + esc(n) + '</span>').join(" · ") + '</div>';
+  if(EXTRA[t]) h += EXTRA[t](r, j);
+  (r.tables || []).forEach((tb, i) => h += tableHtml(t, i, tb));
+  if(r.details) h += det("det-" + t, "Details", '<pre>' + esc(r.details) + '</pre>');
+  return h;
+}
+const TV = {};   // table view state: key -> {view, main}
+function tableHtml(t, i, tb){
+  const key = t + ":" + i, s = TV[key] || (TV[key] = {view:0, main:false});
+  let idx = tb.rows.map((_, k) => k);
+  if(tb.views && tb.views[s.view]) idx = tb.views[s.view].rows;
+  let cols = tb.cols.map((c, k) => k);
+  if(tb.main && s.main) cols = tb.main;
+  const LIM = 400, shown = idx.slice(0, LIM);
+  let h = '<div class="tbl"><div class="tblh"><h3>' + esc(tb.title) + '</h3>';
+  if(tb.views) h += '<div class="views">' + tb.views.map((v, k) => '<button class="' + (k === s.view ? "on" : "") + '" onclick="TV[\'' + key +
+       '\'].view=' + k + ';drawRun(CUR)">' + esc(v.label) + '</button>').join("") + '</div>';
+  if(tb.main) h += '<label class="ck" style="margin-left:auto"><input type="checkbox" ' + (s.main ? "checked" : "") + ' onchange="TV[\'' + key +
+       '\'].main=this.checked;drawRun(CUR)">Main columns only</label>';
+  h += '</div>';
+  if(!shown.length) return h + '<div class="muted">No rows here.</div></div>';
+  const links = new Set(tb.links || []);
+  h += '<div class="tw"><table><thead><tr>' + cols.map(c => '<th>' + esc(tb.cols[c]) + '</th>').join("") + '</tr></thead><tbody>';
+  shown.forEach(k => {
+    const row = tb.rows[k];
+    h += '<tr>' + cols.map(c => {
+      const v = row[c], name = tb.cols[c];
+      if(links.has(name)) return '<td>' + (v ? '<button class="link" onclick="openUrl(' + esc(JSON.stringify(v)) + ')">Open</button>' : "") + '</td>';
+      const long = /Lưu ý|Ghi chú|Note/i.test(name);
+      return '<td class="' + (typeof v === "number" ? "n" : long ? "wrap" : "") + '" title="' + esc(fmt(v)) + '">' + esc(fmt(v)) + '</td>';
+    }).join("") + '</tr>';
+  });
+  h += '</tbody></table></div>';
+  const total = tb.views && tb.views[s.view] ? idx.length : tb.total;
+  if(total > shown.length) h += '<div class="more">Showing ' + shown.length + ' of ' + total.toLocaleString() + ' rows. The file has all of them.</div>';
+  return h + '</div>';
+}
+
+// ------------------------------------------------------------ tools
+const VIEWS = {}, HEAD = {}, AFTER = {}, ONFILE = {}, DONE = {}, EXTRA = {}, EMPTY = {};
+// ---- KSNV Report (Google Sheet of P.KSNV)
+let GOOG = null;
+async function loadGoogle(){ GOOG = await api("/api/google"); const s = st("ksnv"); if(!s.store) s.store = ksStore() || GOOG.store || ""; if(CUR === "ksnv") draw(); }
+function ksStore(v){ try { if(v !== undefined) localStorage.setItem("ks_store", v); return localStorage.getItem("ks_store") || ""; } catch(e){ return ""; } }
+EMPTY.ksnv = "1. Import the PIAS exports (any line, any months), the revenue report and last year's BC KSNV into the data folder. 2. Pick the month and Preview: the tool reads the data folder and the KSNV Sheet and shows every value it would write. Nothing is written until you click Write.";
+EMPTY.ksnvw = "";
+VIEWS.ksnv = () => {
+  const s = st("ksnv"), now = new Date();
+  if(!s.year){ const d = new Date(now.getFullYear(), now.getMonth() - 1, 1); s.year = d.getFullYear(); s.month = d.getMonth() + 1; }
+  const busy = JOBS.ksnv && JOBS.ksnv.state === "running";
+  let h = '<div class="cols"><div class="card"><div class="no">Data folder</div><div style="display:flex;gap:8px">' +
+    '<input class="inp keep" value="' + esc(s.store || "") + '" oninput="S.ksnv.store=this.value;ksStore(this.value);ksnvCan()">' +
+    '<button class="btn sm" onclick="ksOpen()" title="Open the data folder">Open</button></div>' +
+    '<div class="hint">Shared OneDrive folder KSNV-Data. It keeps the policy history from 2025, so the tool can count the policies due for renewal.</div>' +
+    '<div class="no">Add files</div>' + field("ksnv", "files", ".xlsx,.xlsm", true) +
+    '<div class="hint">PIAS policy exports (So don 01 ... 08, any months), the revenue report (BAO CAO THUC HIEN), the XCG review file (Rà soát cấp đơn XCG), CG&amp;TKT, last year\'s BC KSNV workbook. The tool tells them apart by itself; a month imported again replaces the old one.</div>' +
+    '<div class="act"><button class="btn" id="b-ksimp" onclick="ksImport()">Import to data folder</button></div>' +
+    '<div class="no">Report month</div><div style="display:flex;gap:8px">' +
+    '<select onchange="S.ksnv.month=+this.value;draw()">' + [...Array(12).keys()].map(i => '<option value="' + (i + 1) + '" ' + (s.month === i + 1 ? "selected" : "") + '>Month ' + (i + 1) + '</option>').join("") + '</select>' +
+    '<input class="inp" type="number" min="2025" max="2035" value="' + s.year + '" onchange="S.ksnv.year=+this.value;draw()" style="width:100px"></div>' +
+    '<div class="act"><button class="btn pri" id="b-ksnv" onclick="runKsnv()">Preview</button></div>' +
+    (GOOG && !GOOG.signed ? '<div class="hint">Sign in to Google first (top right).</div>' : "") +
+    '</div><div class="stack"><div class="card" id="run-ksnv"></div><div id="run-ksnvw"></div></div></div>';
+  return h;
+};
+AFTER.ksnv = () => ksnvCan();
+ONFILE.ksnv = () => ksnvCan();
+function ksnvCan(){
+  const s = st("ksnv"), busy = JOBS.ksnv && JOBS.ksnv.state === "running", hasStore = !!(s.store || "").trim();
+  if($("b-ksnv")) $("b-ksnv").disabled = !(GOOG && GOOG.signed) || busy || !hasStore;
+  if($("b-ksimp")) $("b-ksimp").disabled = busy || !hasStore || !ready("ksnv", "files");
+}
+async function ksOpen(){ const r = await api("/api/open", {what:"ksnvstore", path:st("ksnv").store}); if(r.error) toast(r.error); }
+function ksImport(){ const s = st("ksnv"); run("ksnv", {mode:"import", store:s.store, files:ids("ksnv", "files")}, "Import to data folder"); }
+DONE.ksnv = (j) => { if(j.state === "done" && j.result && j.result.tables && j.result.tables[0] && j.result.tables[0].title === "Imported") { S.ksnv.files = []; } };
+function runKsnv(){ const s = st("ksnv"); run("ksnv", {mode:"preview", store:s.store, year:s.year, month:s.month}, "KSNV T" + s.month + "/" + s.year + " · preview"); }
+HEAD.ksnv = () => {
+  const j = JOBS.gsignin;
+  let h;
+  if(j && j.state === "running") h = '<span class="spin"></span>Finish the Google sign-in in the browser <button class="btn sm gho" onclick="stopJob(\'gsignin\')">Cancel</button>';
+  else if(!GOOG) h = '<span class="spin"></span>Checking Google...';
+  else if(GOOG.signed) h = '<span class="dot ok"></span>Google · ' + esc(GOOG.email) + ' <button class="btn sm gho" onclick="gSignin()" title="Sign in with another account">Switch</button>';
+  else h = '<span class="dot bad"></span>Not signed in to Google <button class="btn sm pri" onclick="gSignin()">Sign in to Google</button>';
+  if(j && j.state === "failed") h += ' <span class="muted">' + esc(j.error || "") + '</span>';
+  $("hstatus").innerHTML = h;
+};
+function gSignin(){ run("gsignin", {}, "Google sign-in"); }
+DONE.gsignin = () => loadGoogle();
+EXTRA.ksnv = (r) => {
+  if(!r.plan_dir || !(r.parts || []).length) return "";
+  const s = st("ksnv"); s.parts = s.parts && s.planDir === r.plan_dir ? s.parts : [...r.parts]; s.planDir = r.plan_dir;
+  const names = {CD:"CẤP ĐƠN", TH:"THỰC HIỆN", TT:"Tái tục (LƯU 2026)", RX:"RÀ SOÁT XCG (hậu kiểm)"};
+  const w = JOBS.ksnvw && JOBS.ksnvw.state === "running";
+  return '<div class="card" style="margin:12px 0"><div class="no">Write to Google Sheet</div><div style="display:flex;gap:16px;flex-wrap:wrap">' +
+    r.parts.map(p => '<label class="ck"><input type="checkbox" ' + (s.parts.includes(p) ? "checked" : "") + ' onchange="ksnvPart(\'' + p + '\',this.checked)">' + esc(names[p]) + '</label>').join("") +
+    '</div><div class="hint">The cells are saved first, so the write can be undone.</div><div class="act"><button class="btn pri" ' + (w || !s.parts.length ? "disabled" : "") +
+    ' onclick="writeKsnv()">Write</button></div></div>';
+};
+function ksnvPart(p, on){ const s = st("ksnv"); s.parts = s.parts.filter(x => x !== p); if(on) s.parts.push(p); drawRun(CUR); }
+function writeKsnv(){
+  const s = st("ksnv"), names = {CD:"CẤP ĐƠN", TH:"THỰC HIỆN", TT:"LƯU 2026", RX:"RÀ SOÁT XCG"};
+  if(!confirm(tr("Write to the KSNV Google Sheet: ") + s.parts.map(p => names[p]).join(", ") + "?")) return;
+  run("ksnvw", {mode:"write", store:s.store, plan_dir:s.planDir, parts:s.parts}, "Write to Google Sheet");
+}
+EXTRA.ksnvw = (r) => r.backup ? '<div class="act"><button class="btn" onclick="undoKsnv(' + esc(JSON.stringify(r.backup)) + ')">Undo this write</button></div>' : "";
+function undoKsnv(b){ if(confirm(tr("Put the cells back as they were before this write?"))) run("ksnvw", {mode:"restore", store:st("ksnv").store, backup:b}, "Undo write"); }
+
+// ---- Update
+VIEWS.upd = () => {
+  const u = UPDINFO;
+  let msg = "Checking...", btn = false;
+  if(u){
+    if(!u.configured) msg = "Updates are not set up in this copy (app\\update.json has no repo).";
+    else if(u.error) msg = "Cannot check: " + u.error + ".";
+    else if(u.available){ msg = "Version " + u.latest + " is available."; btn = true; }
+    else msg = "This is the latest version.";
+  }
+  const j = JOBS.update, done = j && j.state === "done";
+  return '<div class="stack" style="max-width:760px"><div class="card"><div style="display:flex;align-items:center;gap:14px"><div><div class="no">Version in use</div><div class="big">' +
+    esc(VER) + '</div></div><div style="flex:1"></div><button class="btn sm" onclick="checkUpd(true)">Check for updates</button></div>' +
+    '<p class="muted" style="margin:12px 0 0">' + esc(msg) + '</p><div class="act">' +
+    (btn && !done ? '<button class="btn pri" onclick="run(\'update\',{},\'Update\')" style="flex:0 0 auto">Download and install</button>' : "") +
+    (done ? '<button class="btn pri" style="flex:0 0 auto" onclick="restart()">Restart the tool</button>' : "") + '</div></div>' +
+    (u && u.notes ? '<div class="card"><h2>What is new</h2><div class="notes">' + esc(u.notes) + '</div></div>' : "") +
+    '<div class="card"><h2>Install from a zip file</h2><p class="muted" style="margin:0">When this PC cannot reach GitHub.</p><div style="display:flex;gap:8px;margin-top:10px">' +
+    '<input class="inp" id="zipPath" placeholder="C:\\Users\\...\\Downloads\\ksnv-tools-main.zip"><button class="btn" onclick="runZip()">Install</button></div></div>' +
+    '<div class="card" id="run-update"></div></div>';
+};
+async function checkUpd(force){
+  if(force){ UPDINFO = null; if(CUR === "upd") draw(); }
+  UPDINFO = await api("/api/update/check"); drawNav(); if(CUR === "upd") draw();
+}
+function runZip(){ const p = $("zipPath").value.trim(); if(!p) return; api("/api/run", {tool:"update", mode:"local", zip:p}).then(r => {
+  if(r.error){ toast(r.error); return; } JOBS.update = {state:"running", lines:[], total:0, label:"Update"}; poll(); draw(); }); }
+DONE.update = () => { if(CUR === "upd") draw(); };
+EMPTY.update = "";
+async function restart(){ await api("/api/restart", {}); gone("Restarting..."); }
+async function quit(){
+  if(Object.values(JOBS).some(j => j.state === "running") && !confirm(tr("A tool is still running. Quit and stop it?"))) return;
+  await api("/api/quit", {}); gone("The tool is closed.");
+}
+
+// ------------------------------------------------------------ start
+async function init(){
+  setLang(LANG);
+  api("/api/ping", {});
+  const s = await api("/api/state");
+  if(s.error) return;
+  VER = s.version; $("ver").textContent = "Nam Doo · v" + VER; UPDINFO = s.update;
+  for(const t of Object.keys(s.jobs || {})){
+    const r = await api("/api/job?tool=" + t + "&since=0");
+    if(r.job){ const v = r.job; JOBS[t] = {...v, lines:v.lines, total:v.total}; }
+  }
+  let start = "ksnv"; try { start = localStorage.getItem("ct_tool") || "ksnv"; } catch(e){}
+  go(VIEWS[start] ? start : "ksnv");
+  poll();
+  if(!UPDINFO) setTimeout(() => checkUpd(false), 2500);
+  setInterval(() => api("/api/ping", {}), 30000); api("/api/ping", {});
+}
+init();
+</script>
+</body>
+</html>

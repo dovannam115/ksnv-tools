@@ -1,0 +1,6 @@
+v1.0.0 (10/11/2026)
+- KSNV Report is now its own app, separate from Claim & Equipment Tools.
+- Fills the KSNV Google Sheet of PVI Digital: CẤP ĐƠN (policies per day), THỰC HIỆN (revenue of the month and year to date), Tái tục (LƯU 2026) and RÀ SOÁT XCG (results of the XCG review).
+- THỰC HIỆN takes the revenue of the month and the year-to-date total straight from the revenue report (BAO CAO THUC HIEN, sheet Chi tiet thang năm NV), so the totals match that report.
+- RÀ SOÁT XCG: import the review file the business units filled in (Rà soát cấp đơn XCG), and the tool copies their answers into column Q of the tab, matched by policy, certificate number and review item.
+- Every write saves the old cells first and can be undone.
