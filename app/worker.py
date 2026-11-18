@@ -110,11 +110,16 @@ def run_ksnv(a):
 
     if mode == "import":
         import ksnv_store as ST
-        files = a.get("files") or []
-        if not files:
+        groups = {k: (a.get("files_" + k) or []) for k in ST.KINDS}
+        files = a.get("files") or []                      # older page: one box, kind read from the file
+        if not files and not any(groups.values()):
             raise UserError("Add the files to import.")
         say("Data folder: %s" % store)
-        done, skipped, written = ST.import_files(files, store, log=say)
+        period = (int(a["year"]), int(a["month"])) if a.get("year") and a.get("month") else None
+        if any(groups.values()):
+            done, skipped, written = ST.import_typed(groups, store, period=period, log=say)
+        else:
+            done, skipped, written = ST.import_files(files, store, log=say)
         tb, notes = ksnv_coverage_table(store)
         imp = table("Imported", ["file", "kind", "rows", "lines", "months"], done)
         warns = ["%s: %s" % s for s in skipped]

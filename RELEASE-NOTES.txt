@@ -1,3 +1,7 @@
+v1.0.2 (18/11/2026)
+- Import now has one box per kind of file: policy lists from PIAS, revenue report, last year's BC KSNV, XCG review, CG&TKT. The kind comes from the box it was dropped in, so a file is never read as the wrong kind and never skipped for its name.
+- When a file does not state its own month, the report month chosen on the page is used.
+
 v1.0.1 (18/11/2026)
 - The tool no longer closes itself when its window has been hidden or minimised for a couple of minutes. It now stays open for the working day; close it with Quit when done.
 

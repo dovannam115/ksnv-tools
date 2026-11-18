@@ -55,6 +55,81 @@ def _d(v):
     return d.strftime("%Y-%m-%d") if d else ""
 
 
+# ---------------------------------------------------------------- the period a file covers
+KINDS = ["policy", "revenue", "prevyear", "xcg", "cgtkt"]
+KIND_NAMES = {"policy": "Danh sách đơn", "revenue": "BC doanh thu", "prevyear": "BC KSNV năm trước",
+              "xcg": "Rà soát XCG", "cgtkt": "CG&TKT"}
+
+
+def _first_rows(path, sheet, upto=6):
+    """The text of the first rows of a sheet, where these files write their period."""
+    out = []
+    for r in X.iter_rows(path, sheet, 0):
+        out.append(" ".join(str(v) for k, v in r.items() if k != "_r" and v))
+        if r["_r"] > upto:
+            break
+    return out
+
+
+def policy_sheet(path):
+    """The sheet of a PIAS policy export, and a clear refusal when the file holds something else."""
+    sheets = X.sheet_names(path)
+    sh = "Sheet" if "Sheet" in sheets else sheets[0]
+    for r in X.iter_rows(path, sh, 0):
+        if any(v == "Số đơn BH/SĐBS" for k, v in r.items() if k != "_r"):
+            return sh
+        if r["_r"] >= 1:
+            break
+    raise StoreError("không có cột 'Số đơn BH/SĐBS', đây không phải file danh sách đơn của PIAS")
+
+
+def revenue_year(path, fallback=None):
+    for s in X.sheet_names(path):
+        m = REV_SHEET.match(s)
+        if m:
+            return int(m.group(1))
+    m = re.search(r"(20\d{2})", os.path.basename(path))
+    if m:
+        return int(m.group(1))
+    if fallback:
+        return int(fallback)
+    raise StoreError("không biết file doanh thu của năm nào (thiếu sheet 'Chi tiet thang năm YYYY NV')")
+
+
+def prevyear_of(path, fallback=None):
+    m = re.search(r"(20\d{2})", os.path.basename(path))
+    if m:
+        return int(m.group(1))
+    return int(fallback) if fallback else None
+
+
+def xcg_period(path, fallback=None):
+    for s in X.sheet_names(path):
+        m = XCG_SHEET.match(s)
+        if not m:
+            continue
+        for txt in _first_rows(path, s):
+            d = re.search(r"Từ\s*:\s*\d{1,2}/(\d{1,2})/(\d{4})", txt)
+            if d:
+                return int(d.group(2)), int(d.group(1))
+        return (int(fallback[0]), int(m.group(1))) if fallback else (None, int(m.group(1)))
+    if fallback:
+        return int(fallback[0]), int(fallback[1])
+    raise StoreError("không thấy sheet 'Rà soát XCG Tháng n'")
+
+
+def cgtkt_period(path, fallback=None):
+    sheets = X.sheet_names(path)
+    if "CG&TKT" in sheets:
+        for txt in _first_rows(path, "CG&TKT"):
+            m = re.search(r"Đến ngày\s*:\s*(\d{1,2})/(\d{1,2})/(\d{4})", txt)
+            if m:
+                return int(m.group(3)), int(m.group(2))
+    if fallback:
+        return int(fallback[0]), int(fallback[1])
+    raise StoreError("file CG&TKT không có dòng 'Đến ngày'")
+
+
 # ---------------------------------------------------------------- classify an uploaded file
 def classify(path):
     """('policy', sheet) | ('cgtkt', (year, month)) | ('prevyear', year) | ('skip', reason)"""
@@ -194,6 +269,61 @@ def import_files(paths, store, log=print):
                     os.remove(old)
             shutil.copy2(p, os.path.join(d, name))
             done.append({"file": name, "kind": "BC KSNV năm %s" % (info or "?"), "rows": "", "lines": "", "months": ""})
+    written = write_months(store, batch) if batch else []
+    _log_import(store, done)
+    return done, skipped, written
+
+
+def import_typed(groups, store, period=None, log=print):
+    """Import files whose kind the page already states: each drop area on the page is one kind, so
+    nothing has to be guessed from the contents and a file never lands in the wrong place.
+    groups: {kind: [path]}. period: (year, month) of the report, used when a file does not say its own."""
+    os.makedirs(store, exist_ok=True)
+    done, skipped, batch = [], [], {}
+    for kind in KINDS:
+        for p in groups.get(kind) or []:
+            name = os.path.basename(p)
+            try:
+                if kind == "policy":
+                    sh = policy_sheet(p)
+                    log("Importing %s ..." % name)
+                    n, agg = read_policy_agg(p, sh, log)
+                    for k, v in agg.items():
+                        batch.setdefault(k, v)
+                    months = sorted({k[4][:7] for k in agg if k[4]})
+                    lines = sorted({k[1][:2] for k in agg})
+                    done.append({"file": name, "kind": KIND_NAMES[kind], "rows": n, "lines": ", ".join(lines),
+                                 "months": "%s → %s" % (months[0], months[-1]) if months else "-"})
+                    continue
+                log("Importing %s ..." % name)
+                if kind == "revenue":
+                    y = revenue_year(p, period[0] if period else None)
+                    d = os.path.join(store, "revenue"); os.makedirs(d, exist_ok=True)
+                    shutil.copy2(p, os.path.join(d, "Revenue_%d.xlsx" % y))
+                    done.append({"file": name, "kind": "BC doanh thu %d" % y, "rows": "", "lines": "", "months": ""})
+                elif kind == "prevyear":
+                    y = prevyear_of(p, (period[0] - 1) if period else None)
+                    d = os.path.join(store, "ref"); os.makedirs(d, exist_ok=True)
+                    for old in glob.glob(os.path.join(d, "*.xlsx")):
+                        if y and str(y) in os.path.basename(old):
+                            os.remove(old)
+                    shutil.copy2(p, os.path.join(d, name))
+                    done.append({"file": name, "kind": "BC KSNV năm %s" % (y or "?"), "rows": "", "lines": "", "months": ""})
+                elif kind == "xcg":
+                    y, m = xcg_period(p, period)
+                    d = os.path.join(store, "xcg"); os.makedirs(d, exist_ok=True)
+                    shutil.copy2(p, os.path.join(d, "XCG_Review_%04d-%02d.xlsx" % (y, m)))
+                    done.append({"file": name, "kind": KIND_NAMES[kind], "rows": "", "lines": "",
+                                 "months": "%04d-%02d" % (y, m)})
+                elif kind == "cgtkt":
+                    y, m = cgtkt_period(p, period)
+                    d = os.path.join(store, "cgtkt"); os.makedirs(d, exist_ok=True)
+                    shutil.copy2(p, os.path.join(d, "CG&TKT_%04d-%02d.xlsx" % (y, m)))
+                    done.append({"file": name, "kind": KIND_NAMES[kind], "rows": "", "lines": "",
+                                 "months": "%04d-%02d" % (y, m)})
+            except Exception as ex:
+                skipped.append((name, str(ex)))
+                log("Skip %s: %s" % (name, ex))
     written = write_months(store, batch) if batch else []
     _log_import(store, done)
     return done, skipped, written
