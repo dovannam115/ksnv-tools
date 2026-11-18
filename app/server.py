@@ -581,24 +581,42 @@ def already_running():
 
 
 def shortcuts():
-    """Unzip-and-run: the first start adds 'KSNV Report' to the Desktop and the Start menu,
-    pointing at this copy, so next time nobody has to find the extracted folder. An existing shortcut
-    (from Install.bat or an earlier start) is left alone."""
+    """On start: make sure the Desktop + Start-menu shortcut exists and its icon matches app.ico.
+    The icon is copied to a content-hashed name so Windows cannot keep showing a stale cached icon after
+    it changes; the shortcut is pointed at that copy and the icon cache is nudged, so the Desktop icon
+    updates after an app update without a reboot."""
     if os.name != "nt": return
     target = os.path.join(APP, "pyembed", "pythonw.exe")
-    if not os.path.exists(target): return
-    ps = ("$s = New-Object -ComObject WScript.Shell;"
-          "foreach ($d in @([Environment]::GetFolderPath('Programs'), [Environment]::GetFolderPath('Desktop'))) {"
-          " $p = Join-Path $d '%s.lnk'; if (Test-Path -LiteralPath $p) { continue };"
-          " $l = $s.CreateShortcut($p); $l.TargetPath = '%s'; $l.Arguments = '\"%s\"'; $l.WorkingDirectory = '%s';"
-          " $l.IconLocation = '%s,0'; $l.Description = '%s - PVI Digital'; $l.Save() }"
-          % (NAME, target, os.path.join(APP, "server.py"), ROOT, os.path.join(UI, "app.ico"), NAME))
+    ico = os.path.join(UI, "app.ico")
+    if not os.path.exists(target) or not os.path.exists(ico): return
+    import hashlib
+    cache_ico = ico
+    try:
+        tag = hashlib.md5(open(ico, "rb").read()).hexdigest()[:8]
+        cache_ico = os.path.join(DUMP, "icon_%s.ico" % tag)
+        if not os.path.exists(cache_ico): shutil.copy2(ico, cache_ico)
+        for stale in glob.glob(os.path.join(DUMP, "icon_*.ico")):
+            if os.path.abspath(stale) != os.path.abspath(cache_ico):
+                try: os.remove(stale)
+                except OSError: pass
+    except Exception as ex:
+        log("icon cache: %r" % ex); cache_ico = ico
+    srv = os.path.join(APP, "server.py")
+    q = lambda s: s.replace("'", "''")
+    dirs = "@([Environment]::GetFolderPath('Programs'), [Environment]::GetFolderPath('Desktop'))"
+    ps = "$s = New-Object -ComObject WScript.Shell;"
+    ps += ("foreach ($d in %s) {"
+           " $p = Join-Path $d '%s.lnk'; $new = -not (Test-Path -LiteralPath $p); $l = $s.CreateShortcut($p);"
+           " if ($new) { $l.TargetPath = '%s'; $l.Arguments = '\"%s\"'; $l.WorkingDirectory = '%s'; $l.Description = '%s - PVI Digital' };"
+           " if ($new -or $l.IconLocation -ne '%s,0') { $l.IconLocation = '%s,0'; $l.Save() } }"
+           % (dirs, q(NAME), q(target), q(srv), q(ROOT), q(NAME), q(cache_ico), q(cache_ico)))
     try:
         subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", ps], timeout=60,
                        creationflags=NO_WINDOW, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(["ie4uinit.exe", "-show"], timeout=20, creationflags=NO_WINDOW,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except Exception as ex:
         log("shortcuts: %r" % ex)
-
 
 def watchdog():
     """No page talking to us for 2 minutes and nothing running -> close the server."""
