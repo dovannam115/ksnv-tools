@@ -1,3 +1,6 @@
+v1.0.3 (18/11/2026)
+- A banner scrolls across the top when a new version is available; click it to open the Update tab.
+
 v1.0.2 (18/11/2026)
 - Import now has one box per kind of file: policy lists from PIAS, revenue report, last year's BC KSNV, XCG review, CG&TKT. The kind comes from the box it was dropped in, so a file is never read as the wrong kind and never skipped for its name.
 - When a file does not state its own month, the report month chosen on the page is used.
