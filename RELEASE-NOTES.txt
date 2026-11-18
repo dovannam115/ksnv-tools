@@ -1,3 +1,6 @@
+v1.0.6 (18/11/2026)
+- Icon mới: mascot tờ hồ sơ mặt cười kèm dấu tích xanh.
+
 v1.0.5 (18/11/2026)
 - The update banner scrolls slower and easier to read, and it now shows on its own on open (the app re-checks fresh every time).
 
