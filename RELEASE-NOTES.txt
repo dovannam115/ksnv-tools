@@ -1,3 +1,6 @@
+v1.0.8 (18/11/2026)
+- Icon mới: chú cá voi vẫy đuôi.
+
 v1.0.7 (18/11/2026)
 - Icon shortcut ngoài Desktop và Start menu tự đổi theo icon app sau khi cập nhật, không cần khởi động lại máy.
 
