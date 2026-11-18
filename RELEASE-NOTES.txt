@@ -1,3 +1,6 @@
+v1.0.9 (18/11/2026)
+- Icon bỏ viền trắng quanh ngoài (để trong suốt), nhìn gọn trên taskbar.
+
 v1.0.8 (18/11/2026)
 - Icon mới: chú cá voi vẫy đuôi.
 
