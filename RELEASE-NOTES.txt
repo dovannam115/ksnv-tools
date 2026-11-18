@@ -1,3 +1,6 @@
+v1.0.10 (18/11/2026)
+- Tái tục: 'đã tái tục' chỉ đếm đơn tái tục nối tiếp đơn đến kỳ trong tháng (kỳ mới kết thúc đúng tháng này năm sau), nên số đã không còn vượt số đến kỳ.
+
 v1.0.9 (18/11/2026)
 - Icon bỏ viền trắng quanh ngoài (để trong suốt), nhìn gọn trên taskbar.
 

@@ -286,7 +286,10 @@ def build_tai_tuc(pol, due, cfg, year, month):
                     if not p.goc:
                         continue
                     if bag is done:
-                        if p.loai == "Tái tục":
+                        # chỉ tính tái tục nối tiếp đơn đến kỳ CHÍNH tháng này: kỳ mới (thường 12 tháng)
+                        # kết thúc vào đúng tháng này của năm sau. Đơn tái tục mang số đơn mới nên không
+                        # ghép 1-1 với đơn gốc được; mốc Ngày cuối là cách khớp theo kỳ đến hạn.
+                        if p.loai == "Tái tục" and p.end and p.end.year == year + 1 and p.end.month == month:
                             bag.add(p.so)
                     elif p.end and p.end.year == year and p.end.month == month:
                         bag.add(p.so)
