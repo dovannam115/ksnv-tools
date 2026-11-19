@@ -1,3 +1,6 @@
+v1.0.13 (19/11/2026)
+- Tên mới: KSNV Report - Nam Doo. Shortcut ngoài Desktop và Start menu tự đổi tên ở lần mở sau.
+
 v1.0.12 (19/11/2026)
 - Bỏ các ô tick ở phần ghi: một nút Ghi lên Google Sheet ghi hết các phần có số.
 - Bỏ các dòng giải thích dưới khung, nhãn ô nạp file ngắn gọn, nguồn dữ liệu và tên Sheet dồn vào mục Chi tiết.
