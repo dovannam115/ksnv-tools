@@ -26,7 +26,7 @@
   *{box-sizing:border-box}
   html,body{height:100%;margin:0}
   body{background:var(--bg); color:var(--fg); display:flex;
-       font:14px/1.45 "Segoe UI",system-ui,-apple-system,Arial,sans-serif;
+       font:14px/1.45 var(--ui-font,"Segoe UI"),"Segoe UI",system-ui,-apple-system,Arial,sans-serif;
        -webkit-font-smoothing:antialiased; letter-spacing:-.006em}
   ::selection{background:rgba(217,119,87,.30)}
   ::-webkit-scrollbar{width:10px;height:10px}
@@ -199,6 +199,10 @@
   .modal{background:var(--card); border:1px solid var(--line); border-radius:14px; width:min(560px,100%); padding:18px 20px;
          box-shadow:0 18px 50px rgba(0,0,0,.35)}
   .modal h2{margin:0 0 10px; font-size:15px}
+  .set-row{display:grid; grid-template-columns:110px 1fr; align-items:center; gap:12px; padding:10px 0; border-top:1px solid var(--line)}
+  .set-row:first-of-type{border-top:0}
+  .set-row > span{color:var(--muted); font-size:12.5px}
+  .set-head{display:flex; align-items:center; margin-bottom:6px} .set-head h2{flex:1; margin:0}
   .toast{position:fixed; bottom:18px; left:50%; transform:translateX(-50%); background:var(--fg); color:var(--bg);
          padding:9px 16px; border-radius:10px; font-size:13px; z-index:50; box-shadow:0 8px 30px rgba(0,0,0,.25)}
   .updbar{display:none; overflow:hidden; white-space:nowrap; cursor:pointer; background:linear-gradient(90deg,var(--ember),var(--ember-lit)); color:#fff}
@@ -215,9 +219,8 @@
   <div class="side-end">
     <div class="row">
       <button class="btn sm gho" style="flex:1" onclick="openOut()" title="Open the folder with every result file">Output</button>
-      <button class="btn sm gho" style="flex:1" id="themeBtn" onclick="toggleTheme()">Light mode</button>
+      <button class="btn sm gho" style="flex:1" onclick="openSettings()">Settings</button>
     </div>
-    <div class="seg" id="langSeg"><button data-l="en" onclick="setLang('en')">English</button><button data-l="vi" onclick="setLang('vi')">Tiếng Việt</button></div>
     <button class="btn sm gho" onclick="quit()">Quit</button>
     <div class="ver keep" id="ver"></div>
   </div>
@@ -298,6 +301,8 @@ const VI = {
   "Undo puts back the cells as they were before this write.": "Hoàn tác sẽ đưa các ô về như trước lần ghi này.",
   "Parts written": "Phần đã ghi", "Cells": "Số ô", "Ranges to write": "Vùng sẽ ghi", "Restored": "Đã khôi phục",
   "Output": "Kết quả", "Light mode": "Nền sáng", "Dark mode": "Nền tối", "Quit": "Thoát",
+  "Settings": "Cài đặt", "Close": "Đóng", "Theme": "Giao diện", "Language": "Ngôn ngữ",
+  "Font": "Font chữ", "Text size": "Cỡ chữ", "Small": "Nhỏ", "Normal": "Vừa", "Large": "Lớn", "Extra large": "Rất lớn",
   "Open the folder with every result file": "Mở thư mục chứa mọi file kết quả",
   "Claims": "Bồi thường", "Certificates": "Giấy chứng nhận", "Data & Reconcile": "Dữ liệu và đối soát",
   "Reconcile": "Đối soát", "Slips & invoices": "Phiếu và hóa đơn", "Update": "Cập nhật",
@@ -540,6 +545,43 @@ function setLang(l){
   if(LANG === "vi") localize(document.body); else unlocalize();
 }
 
+// ------------------------------------------------------------ settings (theme, language, font, text size; kept per PC)
+const FONTS = ["Segoe UI", "Calibri", "Arial", "Tahoma", "Verdana", "Barlow", "Be Vietnam Pro", "Roboto", "Inter"];
+const SIZES = [["Small", 0.92], ["Normal", 1], ["Large", 1.1], ["Extra large", 1.2]];
+function pref(k, v){ try { if(v !== undefined) localStorage.setItem(k, v); return localStorage.getItem(k); } catch(e){ return null; } }
+function hasFont(f){
+  const c = document.createElement("canvas").getContext("2d"), t = "mmmmmmmmmmlli1WĐường";
+  c.font = "24px monospace"; const a = c.measureText(t).width;
+  c.font = '24px "' + f + '",monospace'; return c.measureText(t).width !== a;
+}
+function applyFont(){ document.documentElement.style.setProperty("--ui-font", '"' + (pref("ct_font") || "Segoe UI") + '"'); }
+function applySize(){ document.documentElement.style.zoom = +(pref("ct_zoom") || 1); }
+function setFont(f){ pref("ct_font", f); applyFont(); }
+function setSize(z){ pref("ct_zoom", z); applySize(); openSettings(); }
+function openSettings(){
+  closeSettings();
+  const th = document.documentElement.dataset.theme, f = pref("ct_font") || "Segoe UI", z = +(pref("ct_zoom") || 1);
+  const seg = (items, on, fn) => '<div class="seg">' + items.map(([lb, v]) => '<button class="' + (v === on ? "on" : "") + '" onclick="' + fn + '(' +
+    JSON.stringify(v).replace(/"/g, "'") + ')">' + esc(lb) + '</button>').join("") + '</div>';
+  const d = document.createElement("div"); d.id = "setbox"; d.className = "veil";
+  d.onclick = e => { if(e.target === d) closeSettings(); };
+  d.innerHTML = '<div class="modal"><div class="set-head"><h2>Settings</h2><button class="btn sm gho" onclick="closeSettings()">Close</button></div>' +
+    '<div class="set-row"><span>Theme</span>' + seg([["Light mode", "light"], ["Dark mode", "dark"]], th, "setThemeS") + '</div>' +
+    '<div class="set-row"><span>Language</span><div class="seg"><button class="' + (LANG === "en" ? "on" : "") + '" onclick="setLangS(\'en\')">English</button>' +
+      '<button class="' + (LANG === "vi" ? "on" : "") + '" onclick="setLangS(\'vi\')">Tiếng Việt</button></div></div>' +
+    '<div class="set-row"><span>Font</span><select onchange="setFont(this.value)">' +
+      FONTS.filter(x => x === f || hasFont(x)).map(x => '<option value="' + esc(x) + '" style="font-family:\'' + x + '\'" ' + (x === f ? "selected" : "") + '>' + esc(x) + '</option>').join("") +
+    '</select></div>' +
+    '<div class="set-row"><span>Text size</span>' + seg(SIZES, z, "setSize") + '</div></div>';
+  document.body.appendChild(d);
+  if(LANG === "vi") localize(d);
+}
+function closeSettings(){ const d = $("setbox"); if(d) d.remove(); }
+function setThemeS(t){ setTheme(t); openSettings(); }
+function setLangS(l){ setLang(l); openSettings(); }
+document.addEventListener("keydown", e => { if(e.key === "Escape") closeSettings(); });
+applyFont(); applySize();
+
 // ------------------------------------------------------------ nav + theme
 const UPD_LINES = [
   "Có bản mới rồi ní, cập nhật đi cho mượt!!!",
@@ -583,7 +625,7 @@ function drawNav(){
   $("nav").innerHTML = h;
   drawUpdBar();
 }
-function setTheme(t){ document.documentElement.dataset.theme = t; $("themeBtn").textContent = t === "dark" ? "Light mode" : "Dark mode";
+function setTheme(t){ document.documentElement.dataset.theme = t; if($("themeBtn")) $("themeBtn").textContent = t === "dark" ? "Light mode" : "Dark mode";
   try { localStorage.setItem("ct_theme", t); } catch(e){} }
 function toggleTheme(){ setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"); }
 try { setTheme(localStorage.getItem("ct_theme") || "dark"); } catch(e){ setTheme("dark"); }
