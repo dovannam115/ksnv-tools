@@ -1,3 +1,6 @@
+v1.0.18 (19/11/2026)
+- Settings opens as a dialog over the page (the page behind is dimmed), with icons for each section and theme cards.
+
 v1.0.17 (19/11/2026)
 - Settings is now a full page: General (language), Appearance (theme, font, text size), Account (Google sign-in, switch account, sign out), Data (KSNV data folder, output folder) and Updates.
 - The data folder moved from the main page into Settings > Data.
