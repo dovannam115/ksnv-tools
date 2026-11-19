@@ -1,3 +1,6 @@
+v1.0.14 (19/11/2026)
+- Chữ Nam Doo chỉ còn ở tên app, trong tool bỏ hết (dưới logo và dòng phiên bản).
+
 v1.0.13 (19/11/2026)
 - Tên mới: KSNV Report - Nam Doo. Shortcut ngoài Desktop và Start menu tự đổi tên ở lần mở sau.
 

@@ -210,7 +210,7 @@
 </head>
 <body>
 <aside>
-  <div class="brand"><img id="logo" alt=""><div><b>KSNV Report</b><span>Nam Doo</span></div></div>
+  <div class="brand"><img id="logo" alt=""><div><b>KSNV Report</b></div></div>
   <nav id="nav"></nav>
   <div class="side-end">
     <div class="row">
@@ -219,7 +219,7 @@
     </div>
     <div class="seg" id="langSeg"><button data-l="en" onclick="setLang('en')">English</button><button data-l="vi" onclick="setLang('vi')">Tiếng Việt</button></div>
     <button class="btn sm gho" onclick="quit()">Quit</button>
-    <div class="ver keep" id="ver">Nam Doo</div>
+    <div class="ver keep" id="ver"></div>
   </div>
 </aside>
 
@@ -897,7 +897,7 @@ async function init(){
   api("/api/ping", {});
   const s = await api("/api/state");
   if(s.error) return;
-  VER = s.version; $("ver").textContent = "Nam Doo · v" + VER; UPDINFO = s.update;
+  VER = s.version; $("ver").textContent = "v" + VER; UPDINFO = s.update;
   for(const t of Object.keys(s.jobs || {})){
     const r = await api("/api/job?tool=" + t + "&since=0");
     if(r.job){ const v = r.job; JOBS[t] = {...v, lines:v.lines, total:v.total}; }
