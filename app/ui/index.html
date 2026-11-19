@@ -199,6 +199,23 @@
   .modal{background:var(--card); border:1px solid var(--line); border-radius:14px; width:min(560px,100%); padding:18px 20px;
          box-shadow:0 18px 50px rgba(0,0,0,.35)}
   .modal h2{margin:0 0 10px; font-size:15px}
+  .setpage{display:grid; grid-template-columns:190px minmax(0,780px); gap:32px; align-items:start}
+  @media (max-width:900px){.setpage{grid-template-columns:1fr}}
+  .setnav{display:flex; flex-direction:column; gap:2px; position:sticky; top:0}
+  .setnav button{background:none; border:0; text-align:left; padding:8px 12px; border-radius:9px; color:var(--muted); font-size:13.5px}
+  .setnav button:hover{background:var(--hover); color:var(--fg)}
+  .setnav button.on{background:var(--card); color:var(--fg); box-shadow:0 0 0 1px var(--line) inset}
+  .setbody h2{font-size:18px; font-weight:650; margin:4px 0 8px}
+  .setbody h3{font-size:12px; font-weight:600; color:var(--dim); letter-spacing:.08em; text-transform:uppercase; margin:26px 0 0}
+  .srow{display:flex; align-items:center; gap:24px; padding:16px 0; border-bottom:1px solid var(--line)}
+  .srow:last-child{border-bottom:0}
+  .srow > div:first-child{flex:1; min-width:0}
+  .srow b{display:block; font-weight:600; font-size:13.5px}
+  .srow small{display:block; color:var(--muted); font-size:12.5px; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .sctl{flex:0 0 auto; display:flex; gap:8px; align-items:center}
+  .sctl .seg{min-width:280px} .sctl select{min-width:240px} .sctl .inp{width:340px}
+  .setbtn{position:relative} .setbtn.on{background:var(--card); color:var(--fg); box-shadow:0 0 0 1px var(--line) inset}
+  .setbtn .dot{position:absolute; top:6px; right:8px}
   .set-row{display:grid; grid-template-columns:110px 1fr; align-items:center; gap:12px; padding:10px 0; border-top:1px solid var(--line)}
   .set-row:first-of-type{border-top:0}
   .set-row > span{color:var(--muted); font-size:12.5px}
@@ -217,10 +234,7 @@
   <div class="brand"><img id="logo" alt=""><div><b>KSNV Report</b></div></div>
   <nav id="nav"></nav>
   <div class="side-end">
-    <div class="row">
-      <button class="btn sm gho" style="flex:1" onclick="openOut()" title="Open the folder with every result file">Output</button>
-      <button class="btn sm gho" style="flex:1" onclick="openSettings()">Settings</button>
-    </div>
+    <button class="btn sm gho setbtn" id="setBtn" onclick="openSettings()">Settings<span class="dot" id="setDot"></span></button>
     <button class="btn sm gho" onclick="quit()">Quit</button>
     <div class="ver keep" id="ver"></div>
   </div>
@@ -240,9 +254,8 @@ $("logo").src = $("ico").href;
 
 const NAV = [
   ["Reports", [["ksnv","KSNV Report"]]],
-  ["", [["upd","Update"]]],
 ];
-const TITLES = {}; NAV.forEach(([,it]) => it.forEach(([k,t]) => TITLES[k] = t));
+const TITLES = {set:"Settings"}; NAV.forEach(([,it]) => it.forEach(([k,t]) => TITLES[k] = t));
 const S = {};            // per-tool form state, kept while switching tools
 let CUR = "", VER = "", UPDINFO = null;
 const JOBS = {};         // tool -> last job view {state, lines, ...}
@@ -301,7 +314,9 @@ const VI = {
   "Undo puts back the cells as they were before this write.": "Hoàn tác sẽ đưa các ô về như trước lần ghi này.",
   "Parts written": "Phần đã ghi", "Cells": "Số ô", "Ranges to write": "Vùng sẽ ghi", "Restored": "Đã khôi phục",
   "Output": "Kết quả", "Light mode": "Nền sáng", "Dark mode": "Nền tối", "Quit": "Thoát",
-  "Settings": "Cài đặt", "Close": "Đóng", "Theme": "Giao diện", "Language": "Ngôn ngữ",
+  "Settings": "Cài đặt", "Close": "Đóng", "Theme": "Nền", "General": "Chung", "Appearance": "Giao diện", "Account": "Tài khoản",
+  "Data": "Dữ liệu", "Updates": "Cập nhật", "Google account": "Tài khoản Google", "Switch account": "Đổi tài khoản", "Sign out": "Đăng xuất",
+  "KSNV data folder": "Folder dữ liệu KSNV", "Choose the data folder in Settings.": "Chọn folder dữ liệu trong Cài đặt.", "Language": "Ngôn ngữ",
   "Font": "Font chữ", "Text size": "Cỡ chữ", "Small": "Nhỏ", "Normal": "Vừa", "Large": "Lớn", "Extra large": "Rất lớn",
   "Open the folder with every result file": "Mở thư mục chứa mọi file kết quả",
   "Claims": "Bồi thường", "Certificates": "Giấy chứng nhận", "Data & Reconcile": "Dữ liệu và đối soát",
@@ -557,29 +572,64 @@ function hasFont(f){
 function applyFont(){ document.documentElement.style.setProperty("--ui-font", '"' + (pref("ct_font") || "Segoe UI") + '"'); }
 function applySize(){ document.documentElement.style.zoom = +(pref("ct_zoom") || 1); }
 function setFont(f){ pref("ct_font", f); applyFont(); }
-function setSize(z){ pref("ct_zoom", z); applySize(); openSettings(); }
-function openSettings(){
-  closeSettings();
-  const th = document.documentElement.dataset.theme, f = pref("ct_font") || "Segoe UI", z = +(pref("ct_zoom") || 1);
-  const seg = (items, on, fn) => '<div class="seg">' + items.map(([lb, v]) => '<button class="' + (v === on ? "on" : "") + '" onclick="' + fn + '(' +
-    JSON.stringify(v).replace(/"/g, "'") + ')">' + esc(lb) + '</button>').join("") + '</div>';
-  const d = document.createElement("div"); d.id = "setbox"; d.className = "veil";
-  d.onclick = e => { if(e.target === d) closeSettings(); };
-  d.innerHTML = '<div class="modal"><div class="set-head"><h2>Settings</h2><button class="btn sm gho" onclick="closeSettings()">Close</button></div>' +
-    '<div class="set-row"><span>Theme</span>' + seg([["Light mode", "light"], ["Dark mode", "dark"]], th, "setThemeS") + '</div>' +
-    '<div class="set-row"><span>Language</span><div class="seg"><button class="' + (LANG === "en" ? "on" : "") + '" onclick="setLangS(\'en\')">English</button>' +
-      '<button class="' + (LANG === "vi" ? "on" : "") + '" onclick="setLangS(\'vi\')">Tiếng Việt</button></div></div>' +
-    '<div class="set-row"><span>Font</span><select onchange="setFont(this.value)">' +
-      FONTS.filter(x => x === f || hasFont(x)).map(x => '<option value="' + esc(x) + '" style="font-family:\'' + x + '\'" ' + (x === f ? "selected" : "") + '>' + esc(x) + '</option>').join("") +
-    '</select></div>' +
-    '<div class="set-row"><span>Text size</span>' + seg(SIZES, z, "setSize") + '</div></div>';
-  document.body.appendChild(d);
-  if(LANG === "vi") localize(d);
+function setSize(z){ pref("ct_zoom", z); applySize(); draw(); }
+function openSettings(){ go("set"); }
+const SET_SECS = [["general", "General"], ["appearance", "Appearance"], ["account", "Account"], ["data", "Data"], ["updates", "Updates"]];
+function srow(label, sub, ctl){ return '<div class="srow"><div><b>' + esc(label) + '</b>' + (sub ? '<small class="keep" title="' + esc(sub) + '">' + esc(sub) + '</small>' : "") + '</div><div class="sctl">' + ctl + '</div></div>'; }
+function sseg(items, on, fn){ return '<div class="seg">' + items.map(([lb, v]) => '<button class="' + (v === on ? "on" : "") + '" onclick="' + fn + '(' +
+  JSON.stringify(v).replace(/"/g, "'") + ')">' + esc(lb) + '</button>').join("") + '</div>'; }
+const SETS = {
+  general: () => srow("Language", "", sseg([["English", "en"], ["Tiếng Việt", "vi"]], LANG, "setLangS")),
+  appearance: () => {
+    const f = pref("ct_font") || "Segoe UI", z = +(pref("ct_zoom") || 1);
+    return srow("Theme", "", sseg([["Light mode", "light"], ["Dark mode", "dark"]], document.documentElement.dataset.theme, "setThemeS")) +
+      srow("Font", "", '<select onchange="setFont(this.value)">' + FONTS.filter(x => x === f || hasFont(x)).map(x => '<option value="' + esc(x) +
+        '" style="font-family:\'' + x + '\'" ' + (x === f ? "selected" : "") + '>' + esc(x) + '</option>').join("") + '</select>') +
+      srow("Text size", "", sseg(SIZES, z, "setSize"));
+  },
+  account: () => {
+    const j = JOBS.gsignin, busy = j && j.state === "running";
+    if(!GOOG) return srow("Google account", "Checking Google...", "");
+    if(busy) return srow("Google account", "Finish the Google sign-in in the browser", '<button class="btn sm gho" onclick="stopJob(\'gsignin\')">Cancel</button>');
+    return GOOG.signed
+      ? srow("Google account", GOOG.email, '<button class="btn sm" onclick="gSignin()">Switch account</button><button class="btn sm gho" onclick="gSignout()">Sign out</button>')
+      : srow("Google account", "Not signed in to Google", '<button class="btn sm pri" onclick="gSignin()">Sign in to Google</button>');
+  },
+  data: () => {
+    const k = st("ksnv");
+    return srow("KSNV data folder", k.store || "", '<button class="btn sm" onclick="setStoreBrowse()">Choose</button><button class="btn sm gho" onclick="ksOpen()">Open</button>') +
+      srow("Output", "", '<button class="btn sm gho" onclick="openOut()">Open</button>');
+  },
+  updates: () => {
+    const u = UPDINFO, j = JOBS.update, done = j && j.state === "done", busy = j && j.state === "running";
+    let msg = "Checking...", ctl = '<button class="btn sm" onclick="checkUpd(true)">Check for updates</button>';
+    if(u){
+      if(!u.configured) msg = "Updates are not set up in this copy (app\\\\update.json has no repo).";
+      else if(u.error) msg = "Cannot check: " + u.error + ".";
+      else if(u.available){ msg = "Version " + u.latest + " is available."; if(!done && !busy) ctl = '<button class="btn sm pri" onclick="run(\'update\',{},\'Update\')">Download and install</button>'; }
+      else msg = "This is the latest version.";
+    }
+    if(done) ctl = '<button class="btn sm pri" onclick="restart()">Restart the tool</button>';
+    return srow("Version " + VER, msg, ctl) +
+      srow("Install from a zip file", "", '<input class="inp" id="zipPath" placeholder="ksnv-tools-main.zip"><button class="btn sm" onclick="runZip()">Install</button>') +
+      '<div id="run-update" style="margin-top:12px"></div>' +
+      (u && u.notes ? '<h3>What is new</h3><div class="notes" style="margin-top:10px">' + esc(u.notes) + '</div>' : "");
+  },
+};
+function viewSet(){
+  const sec = SETS[S.setSec] ? S.setSec : "general";
+  return '<div class="setpage"><div class="setnav">' + SET_SECS.map(([k, t]) => '<button class="' + (k === sec ? "on" : "") +
+    '" onclick="S.setSec=\'' + k + '\';draw()">' + esc(t) + (k === "updates" && UPDINFO && UPDINFO.available ? ' <span class="dot new" style="display:inline-block"></span>' : "") +
+    '</button>').join("") + '</div><div class="setbody"><h2>' + esc(SET_SECS.find(x => x[0] === sec)[1]) + '</h2>' + SETS[sec]() + '</div></div>';
 }
-function closeSettings(){ const d = $("setbox"); if(d) d.remove(); }
-function setThemeS(t){ setTheme(t); openSettings(); }
-function setLangS(l){ setLang(l); openSettings(); }
-document.addEventListener("keydown", e => { if(e.key === "Escape") closeSettings(); });
+async function setStoreBrowse(){
+  const k = st("ksnv"), r = await api("/api/browse", {start:k.store || ""});
+  if(r.error){ toast(r.error); return; }
+  if(r.path){ k.store = r.path; ksStore(r.path); draw(); }
+}
+async function gSignout(){ await api("/api/google/signout", {}); GOOG = null; draw(); loadGoogle(); }
+function setThemeS(t){ setTheme(t); draw(); }
+function setLangS(l){ setLang(l); draw(); }
 applyFont(); applySize();
 
 // ------------------------------------------------------------ nav + theme
@@ -606,7 +656,7 @@ function drawUpdBar(){
   if(on){
     const line = updLine(UPDINFO.latest) + "  \u00b7  b\u1ea5m \u0111\u1ec3 c\u1eadp nh\u1eadt v" + (UPDINFO.latest || "");
     el.innerHTML = '<span>' + esc(line) + "  \u00b7  " + esc(line) + '</span>';
-    el.onclick = () => go("upd");
+    el.onclick = () => { S.setSec = "updates"; go("set"); };
   }
 }
 
@@ -623,6 +673,8 @@ function drawNav(){
     });
   });
   $("nav").innerHTML = h;
+  if($("setBtn")) $("setBtn").classList.toggle("on", CUR === "set");
+  if($("setDot")) $("setDot").className = "dot" + (UPDINFO && UPDINFO.available ? " new" : "");
   drawUpdBar();
 }
 function setTheme(t){ document.documentElement.dataset.theme = t; if($("themeBtn")) $("themeBtn").textContent = t === "dark" ? "Light mode" : "Dark mode";
@@ -634,7 +686,7 @@ function go(k){
   CUR = k; try { localStorage.setItem("ct_tool", k); } catch(e){}
   $("title").textContent = TITLES[k] || "";
   drawNav(); draw();
-  if(k === "ksnv") loadGoogle();
+  if(k === "ksnv" || k === "set") loadGoogle();
 }
 function draw(){
   const f = VIEWS[CUR]; $("hstatus").innerHTML = "";
@@ -723,7 +775,7 @@ function poll(){
     }
   }, 700);
 }
-function panelFor(tool){ return tool === "upd" ? ["update"] : tool === "ksnv" ? ["ksnv", "ksnvw"] : [tool]; }
+function panelFor(tool){ return tool === "upd" || tool === "set" ? ["update"] : tool === "ksnv" ? ["ksnv", "ksnvw"] : [tool]; }
 function drawRun(tool){
   if(HEAD[tool]) HEAD[tool]();
   panelFor(tool).forEach(t => {
@@ -825,9 +877,10 @@ function tableHtml(t, i, tb, tabbed){
 
 // ------------------------------------------------------------ tools
 const VIEWS = {}, HEAD = {}, AFTER = {}, ONFILE = {}, DONE = {}, EXTRA = {}, EMPTY = {};
+VIEWS.set = viewSet;
 // ---- KSNV Report (Google Sheet of P.KSNV)
 let GOOG = null;
-async function loadGoogle(){ GOOG = await api("/api/google"); const s = st("ksnv"); if(!s.store) s.store = ksStore() || GOOG.store || ""; if(CUR === "ksnv") draw(); }
+async function loadGoogle(){ GOOG = await api("/api/google"); const s = st("ksnv"); if(!s.store) s.store = ksStore() || GOOG.store || ""; if(CUR === "ksnv" || CUR === "set") draw(); }
 function ksStore(v){ try { if(v !== undefined) localStorage.setItem("ks_store", v); return localStorage.getItem("ks_store") || ""; } catch(e){ return ""; } }
 const KS_SLOTS = [["policy", "PIAS policy lists", true],
                   ["revenue", "Revenue report", false],
@@ -839,10 +892,9 @@ VIEWS.ksnv = () => {
   const s = st("ksnv"), now = new Date();
   if(!s.year){ const d = new Date(now.getFullYear(), now.getMonth() - 1, 1); s.year = d.getFullYear(); s.month = d.getMonth() + 1; }
   const busy = JOBS.ksnv && JOBS.ksnv.state === "running";
-  let h = '<div class="cols"><div class="card"><div class="no">Data folder</div><div style="display:flex;gap:8px">' +
-    '<input class="inp keep" value="' + esc(s.store || "") + '" oninput="S.ksnv.store=this.value;ksStore(this.value);ksnvCan()">' +
-    '<button class="btn sm" onclick="ksOpen()" title="Open the data folder">Open</button></div>' +
-    '<div class="no">Add files</div><div class="slots">' +
+  let h = '<div class="cols"><div class="card">' +
+    (s.store ? "" : '<div class="note warn" style="margin:0 0 6px">Choose the data folder in Settings.</div>') +
+    '<div class="no" style="margin-top:0">Add files</div><div class="slots">' +
     KS_SLOTS.map(function(sl){ return '<div class="slot"><label>' + esc(tr(sl[1])) + '</label>' +
       (sl[0] === "policy" ? ksPolicyBox() : field("ksnv", "files_" + sl[0], ".xlsx,.xlsm", sl[2])) + '</div>'; }).join("") + '</div>' +
     '<div class="act"><button class="btn" id="b-ksimp" onclick="ksImport()">Import to data folder</button></div>' +
@@ -896,13 +948,13 @@ HEAD.ksnv = () => {
   let h;
   if(j && j.state === "running") h = '<span class="spin"></span>Finish the Google sign-in in the browser <button class="btn sm gho" onclick="stopJob(\'gsignin\')">Cancel</button>';
   else if(!GOOG) h = '<span class="spin"></span>Checking Google...';
-  else if(GOOG.signed) h = '<span class="dot ok"></span>Google · ' + esc(GOOG.email) + ' <button class="btn sm gho" onclick="gSignin()" title="Sign in with another account">Switch</button>';
+  else if(GOOG.signed) h = '<span class="dot ok"></span>Google · ' + esc(GOOG.email);
   else h = '<span class="dot bad"></span>Not signed in to Google <button class="btn sm pri" onclick="gSignin()">Sign in to Google</button>';
   if(j && j.state === "failed") h += ' <span class="muted">' + esc(j.error || "") + '</span>';
   $("hstatus").innerHTML = h;
 };
 function gSignin(){ run("gsignin", {}, "Google sign-in"); }
-DONE.gsignin = () => loadGoogle();
+DONE.gsignin = () => { loadGoogle(); if(CUR === "set") draw(); };
 EXTRA.ksnv = (r) => {
   if(!r.plan_dir || !(r.parts || []).length) return "";
   const s = st("ksnv"); s.parts = [...r.parts]; s.planDir = r.plan_dir;
@@ -941,12 +993,12 @@ VIEWS.upd = () => {
     '<div class="card" id="run-update"></div></div>';
 };
 async function checkUpd(force){
-  if(force){ UPDINFO = null; if(CUR === "upd") draw(); }
-  UPDINFO = await api("/api/update/check"); drawNav(); if(CUR === "upd") draw();
+  if(force){ UPDINFO = null; if(CUR === "set") draw(); }
+  UPDINFO = await api("/api/update/check"); drawNav(); if(CUR === "set") draw();
 }
 function runZip(){ const p = $("zipPath").value.trim(); if(!p) return; api("/api/run", {tool:"update", mode:"local", zip:p}).then(r => {
   if(r.error){ toast(r.error); return; } JOBS.update = {state:"running", lines:[], total:0, label:"Update"}; poll(); draw(); }); }
-DONE.update = () => { if(CUR === "upd") draw(); };
+DONE.update = () => { if(CUR === "set") draw(); };
 EMPTY.update = "";
 async function restart(){ await api("/api/restart", {}); gone("Restarting..."); }
 async function quit(){
@@ -966,6 +1018,7 @@ async function init(){
     if(r.job){ const v = r.job; JOBS[t] = {...v, lines:v.lines, total:v.total}; }
   }
   let start = "ksnv"; try { start = localStorage.getItem("ct_tool") || "ksnv"; } catch(e){}
+  if(start === "upd") start = "set";
   go(VIEWS[start] ? start : "ksnv");
   poll();
   setTimeout(() => checkUpd(false), 2500);   // always a fresh check on open, so the banner shows on its own
