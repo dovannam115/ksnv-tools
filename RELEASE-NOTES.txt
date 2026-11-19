@@ -1,3 +1,8 @@
+v1.0.12 (19/11/2026)
+- Bỏ các ô tick ở phần ghi: một nút Ghi lên Google Sheet ghi hết các phần có số.
+- Bỏ các dòng giải thích dưới khung, nhãn ô nạp file ngắn gọn, nguồn dữ liệu và tên Sheet dồn vào mục Chi tiết.
+- Bảng không còn khung viền; ô chọn tháng ghi T1..T12.
+
 v1.0.11 (19/11/2026)
 - Trang Preview gọn hơn: các bảng chia thành tab, nguồn dữ liệu hiện thành nhãn Có/Chưa có, dòng Tổng in đậm, số 0 làm mờ, cột Nghiệp vụ và Tổng đứng yên khi cuộn ngang bảng CẤP ĐƠN, nút Write chuyển xuống cuối.
 

@@ -155,7 +155,7 @@
   .views{display:flex; gap:4px; flex-wrap:wrap}
   .views button{background:none; border:1px solid var(--line); color:var(--muted); border-radius:999px; padding:3px 10px; font-size:12px}
   .views button.on{background:var(--ember); border-color:var(--ember); color:#fff}
-  .tw{overflow:auto; max-height:56vh; border:1px solid var(--line); border-radius:10px}
+  .tw{overflow:auto; max-height:60vh}
   table{border-collapse:collapse; width:100%; font-size:12.5px}
   th{position:sticky; top:0; background:var(--elev); text-align:left; font-size:10.5px; font-weight:600; color:var(--dim);
      text-transform:uppercase; letter-spacing:.06em; padding:8px 10px; border-bottom:1px solid var(--line); white-space:nowrap; z-index:1}
@@ -175,11 +175,11 @@
   .wide tr.tot td:first-child{background:var(--elev)}
   .wide th:nth-child(2),.wide td:nth-child(2){position:sticky; left:150px; background:var(--card); z-index:2; box-shadow:1px 0 0 var(--line); font-weight:650}
   .wide th:nth-child(2){background:var(--elev); z-index:3}
-  .srcs{display:flex; flex-wrap:wrap; gap:6px; margin-top:12px}
-  .src{display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line); border-radius:999px; padding:4px 11px; font-size:12px; color:var(--muted); max-width:100%}
-  .src b{font-weight:600; color:var(--fg)}
-  .src span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .src.miss{border-color:var(--warn)} .src.miss b{color:var(--warn)}
+  .slots{display:flex; flex-direction:column; gap:10px}
+  .slot label{display:block; font-size:12px; color:var(--muted); margin-bottom:4px}
+  .slots .drop{padding:9px 12px; font-size:12.5px}
+  .wbar{display:flex; align-items:center; gap:14px; margin-top:20px; padding-top:16px; border-top:1px solid var(--line)}
+  .wbar .muted{flex:1; min-width:0}
   .tabs{display:flex; gap:2px; margin-top:18px; border-bottom:1px solid var(--line); overflow-x:auto}
   .tabs button{background:none; border:0; border-bottom:2px solid transparent; color:var(--muted); padding:8px 12px; font-size:12.5px; white-space:nowrap; margin-bottom:-1px}
   .tabs button:hover{color:var(--fg)}
@@ -279,12 +279,10 @@ const VI = {
   // shell
   "Reports": "Báo cáo", "KSNV Report": "Báo cáo KSNV", "Report month": "Tháng báo cáo", "Input files": "File đầu vào",
   "Data folder": "Folder dữ liệu", "Open": "Mở", "Open the data folder": "Mở folder dữ liệu", "Add files": "Thêm file",
-  "Policy lists from PIAS (So don 01 ... 08)": "Danh sách đơn xuất từ PIAS (So don 01 ... 08)",
-  "Revenue report (BAO CAO THUC HIEN)": "BC doanh thu thực hiện (BAO CAO THUC HIEN)",
-  "Last year's BC KSNV workbook": "File BC KSNV năm trước",
-  "XCG review from the units (Ra soat cap don XCG)": "File rà soát cấp đơn XCG các phòng gửi về",
-  "CG&TKT statistics": "File CG&TKT",
   "Each box takes its own kind of file, nothing is read from the name. Importing a month again replaces the old one.": "Mỗi ô nhận một loại file, không đoán theo tên file. Nạp lại tháng cũ thì thay bản cũ.",
+  "PIAS policy lists": "Danh sách đơn PIAS", "Revenue report": "Báo cáo doanh thu", "Last year's KSNV report": "BC KSNV năm trước",
+  "XCG review": "Rà soát cấp đơn XCG", "CG&TKT statistics": "Thống kê CG&TKT",
+  "Policies + endorsements": "Đơn + SĐBS", "Revenue (VND m)": "DT tháng (tr.đ)", "Nothing to write.": "Không có gì để ghi.",
   "Import to data folder": "Nạp vào folder dữ liệu", "Imported": "Đã nạp",
   "Shared OneDrive folder KSNV-Data. It keeps the policy history from 2025, so the tool can count the policies due for renewal.": "Folder OneDrive dùng chung KSNV-Data. Lưu lịch sử đơn từ 2025 để tool đếm được số đơn đến kỳ tái tục.",
   "PIAS policy exports (So don 01 ... 08, any months), the revenue report (BAO CAO THUC HIEN), the XCG review file (Rà soát cấp đơn XCG), CG&TKT, last year's BC KSNV workbook. The tool tells them apart by itself; a month imported again replaces the old one.": "File xuất PIAS (So don 01 ... 08, tháng nào cũng được), file báo cáo doanh thu (BAO CAO THUC HIEN), file rà soát XCG (Rà soát cấp đơn XCG), CG&TKT, file BC KSNV năm trước. Tool tự nhận loại file; nạp lại tháng cũ thì thay bản cũ.",
@@ -731,8 +729,6 @@ function resultHtml(t, r, j){
          '</button><button class="btn" onclick="openPath(' + esc(JSON.stringify(f.path)) + ')">Open</button><button class="btn gho" onclick="openPath(' +
          esc(JSON.stringify(f.path)) + ',1)" title="Show the file in its folder">Folder</button></div>').join("") + '</div>';
   }
-  if(r.sources && r.sources.length) h += '<div class="srcs">' + r.sources.map(x => '<div class="src' + (x.ok ? "" : " miss") + '" title="' + esc(x.value) + '"><b>' +
-       (x.ok ? "Có" : "Chưa có") + '</b><span>' + esc(x.label) + (x.ok ? " · " + esc(x.value) : "") + '</span></div>').join("") + '</div>';
   if(r.notes && r.notes.length) h += '<div class="caption">' + r.notes.map(n => '<span>' + esc(n) + '</span>').join(" · ") + '</div>';
   const tbs = r.tables || [];
   if(tbs.length > 1 && TABBED[t]){
@@ -754,7 +750,7 @@ function tableHtml(t, i, tb, tabbed){
   if(tb.main && s.main) cols = tb.main;
   const LIM = 400, shown = idx.slice(0, LIM);
   const parts = tb.title.split(" · "), sub = parts.slice(1).join(" · ");
-  let h = '<div class="tbl"><div class="tblh"><h3>' + (tabbed ? '<span style="margin:0">' + esc(sub) + '</span>'
+  let h = '<div class="tbl"><div class="tblh"><h3>' + (tabbed ? (sub.length <= 20 ? '<span style="margin:0">' + esc(sub) + '</span>' : "")
           : esc(parts[0]) + (sub ? '<span>' + esc(sub) + '</span>' : "")) + '</h3>';
   if(tb.views) h += '<div class="views">' + tb.views.map((v, k) => '<button class="' + (k === s.view ? "on" : "") + '" onclick="TV[\'' + key +
        '\'].view=' + k + ';drawRun(CUR)">' + esc(v.label) + '</button>').join("") + '</div>';
@@ -791,12 +787,11 @@ const VIEWS = {}, HEAD = {}, AFTER = {}, ONFILE = {}, DONE = {}, EXTRA = {}, EMP
 let GOOG = null;
 async function loadGoogle(){ GOOG = await api("/api/google"); const s = st("ksnv"); if(!s.store) s.store = ksStore() || GOOG.store || ""; if(CUR === "ksnv") draw(); }
 function ksStore(v){ try { if(v !== undefined) localStorage.setItem("ks_store", v); return localStorage.getItem("ks_store") || ""; } catch(e){ return ""; } }
-const KS_SLOTS = [["policy", "Policy lists from PIAS (So don 01 ... 08)", true],
-                  ["revenue", "Revenue report (BAO CAO THUC HIEN)", false],
-                  ["prevyear", "Last year's BC KSNV workbook", false],
-                  ["xcg", "XCG review from the units (Ra soat cap don XCG)", false],
+const KS_SLOTS = [["policy", "PIAS policy lists", true],
+                  ["revenue", "Revenue report", false],
+                  ["prevyear", "Last year's KSNV report", false],
+                  ["xcg", "XCG review", false],
                   ["cgtkt", "CG&TKT statistics", false]];
-EMPTY.ksnv = "1. Import the PIAS exports (any line, any months), the revenue report and last year's BC KSNV into the data folder. 2. Pick the month and Preview: the tool reads the data folder and the KSNV Sheet and shows every value it would write. Nothing is written until you click Write.";
 EMPTY.ksnvw = "";
 VIEWS.ksnv = () => {
   const s = st("ksnv"), now = new Date();
@@ -805,17 +800,14 @@ VIEWS.ksnv = () => {
   let h = '<div class="cols"><div class="card"><div class="no">Data folder</div><div style="display:flex;gap:8px">' +
     '<input class="inp keep" value="' + esc(s.store || "") + '" oninput="S.ksnv.store=this.value;ksStore(this.value);ksnvCan()">' +
     '<button class="btn sm" onclick="ksOpen()" title="Open the data folder">Open</button></div>' +
-    '<div class="hint">Shared OneDrive folder KSNV-Data. It keeps the policy history from 2025, so the tool can count the policies due for renewal.</div>' +
-    '<div class="no">Add files</div>' +
-    KS_SLOTS.map(function(sl){ return '<div class="hint" style="margin:6px 0 2px">' + esc(tr(sl[1])) + '</div>' +
-      field("ksnv", "files_" + sl[0], ".xlsx,.xlsm", sl[2]); }).join("") +
-    '<div class="hint">Each box takes its own kind of file, nothing is read from the name. Importing a month again replaces the old one.</div>' +
+    '<div class="no">Add files</div><div class="slots">' +
+    KS_SLOTS.map(function(sl){ return '<div class="slot"><label>' + esc(tr(sl[1])) + '</label>' +
+      field("ksnv", "files_" + sl[0], ".xlsx,.xlsm", sl[2]) + '</div>'; }).join("") + '</div>' +
     '<div class="act"><button class="btn" id="b-ksimp" onclick="ksImport()">Import to data folder</button></div>' +
     '<div class="no">Report month</div><div style="display:flex;gap:8px">' +
-    '<select onchange="S.ksnv.month=+this.value;draw()">' + [...Array(12).keys()].map(i => '<option value="' + (i + 1) + '" ' + (s.month === i + 1 ? "selected" : "") + '>Month ' + (i + 1) + '</option>').join("") + '</select>' +
+    '<select onchange="S.ksnv.month=+this.value;draw()">' + [...Array(12).keys()].map(i => '<option value="' + (i + 1) + '" ' + (s.month === i + 1 ? "selected" : "") + '>T' + (i + 1) + '</option>').join("") + '</select>' +
     '<input class="inp" type="number" min="2025" max="2035" value="' + s.year + '" onchange="S.ksnv.year=+this.value;draw()" style="width:100px"></div>' +
     '<div class="act"><button class="btn pri" id="b-ksnv" onclick="runKsnv()">Preview</button></div>' +
-    (GOOG && !GOOG.signed ? '<div class="hint">Sign in to Google first (top right).</div>' : "") +
     '</div><div class="stack"><div class="card" id="run-ksnv"></div><div id="run-ksnvw"></div></div></div>';
   return h;
 };
@@ -835,7 +827,7 @@ function ksImport(){
   run("ksnv", a, "Import to data folder");
 }
 DONE.ksnv = (j) => { if(j.state === "done" && j.result && j.result.tables && j.result.tables[0] && j.result.tables[0].title === "Imported") { KS_SLOTS.forEach(function(sl){ S.ksnv["files_" + sl[0]] = []; }); } };
-function runKsnv(){ const s = st("ksnv"); run("ksnv", {mode:"preview", store:s.store, year:s.year, month:s.month}, "KSNV T" + s.month + "/" + s.year + " · preview"); }
+function runKsnv(){ const s = st("ksnv"); run("ksnv", {mode:"preview", store:s.store, year:s.year, month:s.month}, "KSNV T" + s.month + "/" + s.year); }
 HEAD.ksnv = () => {
   const j = JOBS.gsignin;
   let h;
@@ -850,15 +842,12 @@ function gSignin(){ run("gsignin", {}, "Google sign-in"); }
 DONE.gsignin = () => loadGoogle();
 EXTRA.ksnv = (r) => {
   if(!r.plan_dir || !(r.parts || []).length) return "";
-  const s = st("ksnv"); s.parts = s.parts && s.planDir === r.plan_dir ? s.parts : [...r.parts]; s.planDir = r.plan_dir;
-  const names = {CD:"CẤP ĐƠN", TH:"THỰC HIỆN", TT:"Tái tục (LƯU 2026)", RX:"RÀ SOÁT XCG (hậu kiểm)"};
+  const s = st("ksnv"); s.parts = [...r.parts]; s.planDir = r.plan_dir;
+  const names = {CD:"CẤP ĐƠN", TH:"THỰC HIỆN", TT:"LƯU 2026", RX:"RÀ SOÁT XCG"};
   const w = JOBS.ksnvw && JOBS.ksnvw.state === "running";
-  return '<div class="card" style="margin:18px 0 4px; background:var(--elev)"><div class="no" style="margin-top:0">Write to Google Sheet</div><div style="display:flex;gap:16px;flex-wrap:wrap">' +
-    r.parts.map(p => '<label class="ck"><input type="checkbox" ' + (s.parts.includes(p) ? "checked" : "") + ' onchange="ksnvPart(\'' + p + '\',this.checked)">' + esc(names[p]) + '</label>').join("") +
-    '</div><div class="hint">The cells are saved first, so the write can be undone.</div><div class="act"><button class="btn pri" ' + (w || !s.parts.length ? "disabled" : "") +
-    ' onclick="writeKsnv()">Write</button></div></div>';
+  return '<div class="wbar"><span class="muted">' + r.parts.map(p => esc(names[p])).join(" · ") + '</span>' +
+    '<button class="btn pri" ' + (w ? "disabled" : "") + ' onclick="writeKsnv()">Write to Google Sheet</button></div>';
 };
-function ksnvPart(p, on){ const s = st("ksnv"); s.parts = s.parts.filter(x => x !== p); if(on) s.parts.push(p); drawRun(CUR); }
 function writeKsnv(){
   const s = st("ksnv"), names = {CD:"CẤP ĐƠN", TH:"THỰC HIỆN", TT:"LƯU 2026", RX:"RÀ SOÁT XCG"};
   if(!confirm(tr("Write to the KSNV Google Sheet: ") + s.parts.map(p => names[p]).join(", ") + "?")) return;

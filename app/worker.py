@@ -138,17 +138,14 @@ def run_ksnv(a):
         keep = tuple("'%s'!" % KSNV_PARTS[p] for p in parts)
         data = [(rg, v) for rg, v in plan["data"] if rg.startswith(keep)]
         if not data:
-            raise UserError("Nothing to write. Tick at least one part.")
+            raise UserError("Nothing to write.")
         say("Saving the current cells before writing ...")
         bk = S.backup(sh, data, DIR)
         say("Writing %d ranges to '%s' ..." % (len(data), plan["title"]))
         sh.update(data)
         n_cells = sum(len(v) * max(len(r) for r in v) for _, v in data)
-        return {"stats": [stat("Month", "T%s/%s" % (plan["month"], plan["year"])),
-                          stat("Parts written", ", ".join(KSNV_PARTS[p] for p in parts), "good"),
-                          stat("Cells", n_cells)],
-                "notes": ["Undo puts back the cells as they were before this write."],
-                "files": [bk], "backup": bk}
+        return {"stats": [stat("Parts written", len(parts), "good"), stat("Cells", n_cells)],
+                "backup": bk}
 
     # preview: data folder + Sheet -> what would be written
     import calendar
@@ -202,15 +199,12 @@ def run_ksnv(a):
     tables.append(cov_tb)
     tot_i = sum(r["I"] for r in th.values()) if th else 0
     by_tab = Counter(rg.split("!")[0].strip("'") for rg, _ in data)
-    return {"stats": [stat("Month", "T%d/%d" % (m, y)),
-                      stat("Đơn + SĐBS", sum(sum(v) for v in res["cap_don"].values())),
-                      stat("DT tháng (tr.đ)", tot_i),
+    return {"stats": [stat("Policies + endorsements", sum(sum(v) for v in res["cap_don"].values())),
+                      stat("Revenue (VND m)", tot_i),
                       stat("Ranges to write", len(data), "good" if not missing else "warn")],
             "warns": res["warnings"] + missing,
-            "notes": ["Sheet: %s" % title, "Google: %s" % auth.email,
-                      "Ô sẽ ghi: " + ", ".join("%s %d" % kv for kv in by_tab.items())],
-            "sources": [{"label": n.split(": ", 1)[0], "value": n.split(": ", 1)[1],
-                         "ok": not n.endswith("chưa có")} for n in cov_notes],
+            "details": "\n".join(["Sheet: %s" % title, "Google: %s" % auth.email] + cov_notes +
+                                  ["Ranges: " + ", ".join("%s %d" % kv for kv in by_tab.items())]),
             "tables": tables, "plan_dir": DIR,
             "parts": [p for p, tab in KSNV_PARTS.items() if by_tab.get(tab)]}
 
