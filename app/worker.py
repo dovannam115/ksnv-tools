@@ -4,7 +4,7 @@
 # Lines it prints go to the run panel in the window. Markers the server reads:
 #   [[P]] done|total|label     progress bar
 #   [[ERROR]] text             the message the user sees when the run fails
-import os, sys, json, time, shutil, traceback, threading, datetime, decimal
+import os, sys, json, glob, time, shutil, traceback, threading, datetime, decimal
 from collections import Counter
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -111,6 +111,14 @@ def run_ksnv(a):
     if mode == "import":
         import ksnv_store as ST
         groups = {k: (a.get("files_" + k) or []) for k in ST.KINDS}
+        pf = (a.get("policy_folder") or "").strip().strip('"')
+        if pf:
+            if not os.path.isdir(pf): raise UserError("Folder not found: %s" % pf)
+            got = sorted(f for f in glob.glob(os.path.join(pf, "*.xls*"))
+                         if not os.path.basename(f).startswith("~$") and f.lower().endswith((".xlsx", ".xlsm")))
+            if not got: raise UserError("No Excel file in %s" % pf)
+            say("Policy folder: %s (%d files)" % (pf, len(got)))
+            groups["policy"] = got + groups["policy"]
         files = a.get("files") or []                      # older page: one box, kind read from the file
         if not files and not any(groups.values()):
             raise UserError("Add the files to import.")

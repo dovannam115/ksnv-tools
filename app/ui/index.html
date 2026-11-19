@@ -283,7 +283,7 @@ const VI = {
   "PIAS policy lists": "Danh sách đơn PIAS", "Revenue report": "Báo cáo doanh thu", "Last year's KSNV report": "BC KSNV năm trước",
   "XCG review": "Rà soát cấp đơn XCG", "CG&TKT statistics": "Thống kê CG&TKT",
   "Policies + endorsements": "Đơn + SĐBS", "Revenue (VND m)": "DT tháng (tr.đ)", "Nothing to write.": "Không có gì để ghi.",
-  "Import to data folder": "Nạp vào folder dữ liệu", "Imported": "Đã nạp",
+  "Choose": "Chọn", "Import to data folder": "Nạp vào folder dữ liệu", "Imported": "Đã nạp",
   "Shared OneDrive folder KSNV-Data. It keeps the policy history from 2025, so the tool can count the policies due for renewal.": "Folder OneDrive dùng chung KSNV-Data. Lưu lịch sử đơn từ 2025 để tool đếm được số đơn đến kỳ tái tục.",
   "PIAS policy exports (So don 01 ... 08, any months), the revenue report (BAO CAO THUC HIEN), the XCG review file (Rà soát cấp đơn XCG), CG&TKT, last year's BC KSNV workbook. The tool tells them apart by itself; a month imported again replaces the old one.": "File xuất PIAS (So don 01 ... 08, tháng nào cũng được), file báo cáo doanh thu (BAO CAO THUC HIEN), file rà soát XCG (Rà soát cấp đơn XCG), CG&TKT, file BC KSNV năm trước. Tool tự nhận loại file; nạp lại tháng cũ thì thay bản cũ.",
   "1. Import the PIAS exports (any line, any months), the revenue report and last year's BC KSNV into the data folder. 2. Pick the month and Preview: the tool reads the data folder and the KSNV Sheet and shows every value it would write. Nothing is written until you click Write.": "1. Nạp file xuất PIAS (line nào, tháng nào cũng được), file báo cáo doanh thu và BC KSNV năm trước vào folder dữ liệu. 2. Chọn tháng rồi bấm Xem trước: tool đọc folder dữ liệu và Sheet KSNV, hiện mọi số sẽ ghi. Chưa ghi gì cho tới khi bấm Ghi.",
@@ -802,7 +802,7 @@ VIEWS.ksnv = () => {
     '<button class="btn sm" onclick="ksOpen()" title="Open the data folder">Open</button></div>' +
     '<div class="no">Add files</div><div class="slots">' +
     KS_SLOTS.map(function(sl){ return '<div class="slot"><label>' + esc(tr(sl[1])) + '</label>' +
-      field("ksnv", "files_" + sl[0], ".xlsx,.xlsm", sl[2]) + '</div>'; }).join("") + '</div>' +
+      (sl[0] === "policy" ? ksPolicyBox() : field("ksnv", "files_" + sl[0], ".xlsx,.xlsm", sl[2])) + '</div>'; }).join("") + '</div>' +
     '<div class="act"><button class="btn" id="b-ksimp" onclick="ksImport()">Import to data folder</button></div>' +
     '<div class="no">Report month</div><div style="display:flex;gap:8px">' +
     '<select onchange="S.ksnv.month=+this.value;draw()">' + [...Array(12).keys()].map(i => '<option value="' + (i + 1) + '" ' + (s.month === i + 1 ? "selected" : "") + '>T' + (i + 1) + '</option>').join("") + '</select>' +
@@ -820,10 +820,31 @@ function ksnvCan(){
 }
 async function ksOpen(){ const r = await api("/api/open", {what:"ksnvstore", path:st("ksnv").store}); if(r.error) toast(r.error); }
 function ksBusyUp(){ const s = st("ksnv"); return KS_SLOTS.some(function(sl){ return (s["files_" + sl[0]] || []).some(function(f){ return f.up; }); }); }
-function ksFileCount(){ const s = st("ksnv"); return KS_SLOTS.reduce(function(n, sl){ return n + ((s["files_" + sl[0]] || []).length); }, 0); }
+function ksFileCount(){ const s = st("ksnv"); return KS_SLOTS.reduce(function(n, sl){ return n + ((s["files_" + sl[0]] || []).length); }, 0) + (s.polFiles || []).length; }
+// policy lists: one month folder holding the line files (01, 02, 03 ...), all read at once
+function ksPolFolder(v){ try { if(v !== undefined) localStorage.setItem("ks_polfolder", v); return localStorage.getItem("ks_polfolder") || ""; } catch(e){ return ""; } }
+function ksPolicyBox(){
+  const s = st("ksnv"); if(s.polFolder === undefined){ s.polFolder = ksPolFolder(); ksPolList(); }
+  const fs = s.polFiles || [];
+  return '<div style="display:flex;gap:8px"><input class="inp keep" value="' + esc(s.polFolder || "") + '" onchange="ksPolSet(this.value)">' +
+    '<button class="btn sm" onclick="ksPolBrowse()">Choose</button></div>' +
+    (fs.length ? '<div class="chips">' + fs.map(f => '<div class="chip"><span title="' + esc(f.name) + '">' + esc(f.name) + '</span><i>' +
+      Math.max(1, Math.round(f.size / 1024)).toLocaleString() + ' KB</i></div>').join("") + '</div>' : "");
+}
+async function ksPolList(){
+  const s = st("ksnv"), r = s.polFolder ? await api("/api/folder", {path:s.polFolder}) : {files:[]};
+  s.polFiles = r.files || []; if(CUR === "ksnv") draw();
+}
+function ksPolSet(v){ const s = st("ksnv"); s.polFolder = v.trim().replace(/^"|"$/g, ""); ksPolFolder(s.polFolder); ksPolList(); }
+async function ksPolBrowse(){
+  const s = st("ksnv"), r = await api("/api/browse", {start:s.polFolder || ""});
+  if(r.error){ toast(r.error); return; }
+  if(r.path) ksPolSet(r.path);
+}
 function ksImport(){
   const s = st("ksnv"), a = {mode:"import", store:s.store, year:s.year, month:s.month};
   KS_SLOTS.forEach(function(sl){ a["files_" + sl[0]] = ids("ksnv", "files_" + sl[0]); });
+  if((s.polFiles || []).length) a.policy_folder = s.polFolder;
   run("ksnv", a, "Import to data folder");
 }
 DONE.ksnv = (j) => { if(j.state === "done" && j.result && j.result.tables && j.result.tables[0] && j.result.tables[0].title === "Imported") { KS_SLOTS.forEach(function(sl){ S.ksnv["files_" + sl[0]] = []; }); } };

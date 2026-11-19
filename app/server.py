@@ -219,6 +219,31 @@ def upload_save(name, data):
     return {"id": "upload:" + uid, "name": name, "size": len(data)}
 
 
+# ------------------------------------------------------------------ folder picker
+PICK_PS1 = '# Explorer-style folder picker that comes up in front of the browser window.\n# Prints the chosen folder (UTF-8) or nothing when cancelled.\nparam([string]$Start = "")\n$ErrorActionPreference = "Stop"\n[Console]::OutputEncoding = [Text.Encoding]::UTF8\n\nAdd-Type -ReferencedAssemblies System.Windows.Forms -TypeDefinition @"\nusing System;\nusing System.Runtime.InteropServices;\npublic static class PickFolder {\n    [ComImport, Guid("DC1C5A9C-E88A-4dde-A5A1-60F82A20AEF7")] class FileOpenDialogRCW {}\n    [ComImport, Guid("42f85136-db7e-439c-85f1-e4075d135fc8"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]\n    interface IFileDialog {\n        [PreserveSig] int Show(IntPtr parent);\n        void SetFileTypes(uint c, IntPtr f); void SetFileTypeIndex(uint i); void GetFileTypeIndex(out uint i);\n        void Advise(IntPtr e, out uint c); void Unadvise(uint c);\n        void SetOptions(uint o); void GetOptions(out uint o);\n        void SetDefaultFolder(IShellItem i); void SetFolder(IShellItem i); void GetFolder(out IShellItem i);\n        void GetCurrentSelection(out IShellItem i); void SetFileName([MarshalAs(UnmanagedType.LPWStr)] string n);\n        void GetFileName(out IntPtr n); void SetTitle([MarshalAs(UnmanagedType.LPWStr)] string t);\n        void SetOkButtonLabel([MarshalAs(UnmanagedType.LPWStr)] string t); void SetFileNameLabel([MarshalAs(UnmanagedType.LPWStr)] string t);\n        void GetResult(out IShellItem i);\n    }\n    [ComImport, Guid("43826D1E-E718-42EE-BC55-A1E261C37BFE"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]\n    interface IShellItem {\n        void BindToHandler(IntPtr pbc, ref Guid bhid, ref Guid riid, out IntPtr ppv); void GetParent(out IShellItem i);\n        void GetDisplayName(uint sigdn, [MarshalAs(UnmanagedType.LPWStr)] out string name);\n    }\n    [DllImport("shell32.dll", CharSet = CharSet.Unicode, PreserveSig = false)]\n    static extern void SHCreateItemFromParsingName(string path, IntPtr pbc, [MarshalAs(UnmanagedType.LPStruct)] Guid riid, out IShellItem item);\n    [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr h);\n    [DllImport("user32.dll")] static extern void keybd_event(byte vk, byte scan, uint flags, UIntPtr extra);\n\n    public static void Front(IntPtr h) {\n        // a background process may not take the foreground; one synthetic Alt tap lifts that lock\n        keybd_event(0x12, 0, 0, UIntPtr.Zero); keybd_event(0x12, 0, 2, UIntPtr.Zero);\n        SetForegroundWindow(h);\n    }\n    public static string Pick(IntPtr owner, string start) {\n        IFileDialog d = (IFileDialog)new FileOpenDialogRCW();\n        d.SetOptions(0x20 | 0x40 | 0x800);           // pick folders, file system only, path must exist\n        d.SetTitle("Chọn folder danh sách đơn");\n        if (!string.IsNullOrEmpty(start) && System.IO.Directory.Exists(start)) {\n            try { IShellItem it; SHCreateItemFromParsingName(start, IntPtr.Zero, typeof(IShellItem).GUID, out it); d.SetFolder(it); } catch {}\n        }\n        if (d.Show(owner) != 0) return "";\n        IShellItem r; d.GetResult(out r); string p; r.GetDisplayName(0x80058000, out p); return p;\n    }\n}\n"@\n\n$w = New-Object System.Windows.Forms.Form\n$w.TopMost = $true; $w.ShowInTaskbar = $false; $w.Opacity = 0\n$w.FormBorderStyle = \'None\'; $w.StartPosition = \'CenterScreen\'; $w.Size = New-Object System.Drawing.Size(1, 1)\n$w.Show(); [PickFolder]::Front($w.Handle); $w.Activate(); [System.Windows.Forms.Application]::DoEvents()\ntry { $p = [PickFolder]::Pick($w.Handle, $Start) }\ncatch {\n    $d = New-Object System.Windows.Forms.FolderBrowserDialog\n    $d.SelectedPath = $Start; $d.ShowNewFolderButton = $true\n    $p = if ($d.ShowDialog($w) -eq \'OK\') { $d.SelectedPath } else { "" }\n}\n$w.Close()\nif ($p) { $p }\n'
+BROWSE_LOCK = threading.Lock()
+
+def browse_folder(start):
+    """Explorer folder picker brought to the front; returns '' when cancelled."""
+    if BROWSE_LOCK.locked(): return ""
+    with BROWSE_LOCK:
+        script = os.path.join(DUMP, "pick_folder.ps1")
+        with open(script, "w", encoding="utf-8-sig") as f: f.write(PICK_PS1)
+        r = subprocess.run(["powershell", "-NoProfile", "-STA", "-ExecutionPolicy", "Bypass", "-File", script,
+                            "-Start", start or ""], capture_output=True, creationflags=NO_WINDOW, timeout=600)
+        out = r.stdout.decode("utf-8", "replace").strip().lstrip("\ufeff")
+        if r.returncode and not out:
+            raise RuntimeError(r.stderr.decode("utf-8", "replace").strip()[:300] or "folder picker failed")
+        return out.splitlines()[-1] if out else ""
+
+
+def excel_files(folder):
+    """The Excel files directly inside a folder (no subfolders, no Excel lock files)."""
+    if not folder or not os.path.isdir(folder): return []
+    return sorted(f for f in glob.glob(os.path.join(folder, "*.xls*"))
+                  if not os.path.basename(f).startswith("~$") and f.lower().endswith((".xlsx", ".xlsm")))
+
+
 def upload_path(uid):
     d = os.path.join(UPLOADS, re.sub(r"[^0-9a-f]", "", uid))
     fs = os.listdir(d) if os.path.isdir(d) else []
@@ -268,7 +293,7 @@ def state():
 # ------------------------------------------------------------------ update from GitHub
 UPD = {"cache": None, "checked": 0}
 SKIP_DIRS  = {"pyembed", "dump", "output", "dist", ".git", "__pycache__", ".vscode"}
-ALLOW_EXT  = {".py", ".js", ".html", ".css", ".bat", ".txt", ".json", ".md", ".ico"}
+ALLOW_EXT  = {".py", ".js", ".html", ".css", ".bat", ".txt", ".json", ".md", ".ico", ".ps1"}
 DATA_EXT   = {".xlsx", ".xlsm", ".docx"}       # only under app\data
 ALLOW_NAME = {"VERSION"}
 KEEP_FILES = {"update.json"}                   # each install keeps its own repo + token
@@ -495,6 +520,12 @@ class Handler(BaseHTTPRequestHandler):
             j = JOBS.get(d.get("tool"))
             if j and j.state == "running": j.stop()
             return self.json({"ok": True})
+        if p == "/api/browse":
+            try: return self.json({"path": browse_folder(d.get("start") or "")})
+            except Exception as ex: return self.json({"error": str(ex)}, 500)
+        if p == "/api/folder":
+            fs = excel_files((d.get("path") or "").strip().strip('"'))
+            return self.json({"files": [{"name": os.path.basename(f), "size": os.path.getsize(f)} for f in fs]})
         if p == "/api/open":
             # a file or folder of a run, the KSNV data folder, or a link from a result
             if d.get("url"):

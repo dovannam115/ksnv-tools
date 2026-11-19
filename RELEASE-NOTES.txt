@@ -1,3 +1,6 @@
+v1.0.15 (19/11/2026)
+- Danh sách đơn PIAS: chọn folder tháng (trong folder lũy kế) thay vì thả từng file, tool đọc hết file nghiệp vụ trong folder đó.
+
 v1.0.14 (19/11/2026)
 - Chữ Nam Doo chỉ còn ở tên app, trong tool bỏ hết (dưới logo và dòng phiên bản).
 
