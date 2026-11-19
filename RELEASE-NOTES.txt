@@ -1,3 +1,6 @@
+v1.0.11 (19/11/2026)
+- Trang Preview gọn hơn: các bảng chia thành tab, nguồn dữ liệu hiện thành nhãn Có/Chưa có, dòng Tổng in đậm, số 0 làm mờ, cột Nghiệp vụ và Tổng đứng yên khi cuộn ngang bảng CẤP ĐƠN, nút Write chuyển xuống cuối.
+
 v1.0.10 (18/11/2026)
 - Tái tục: 'đã tái tục' chỉ đếm đơn tái tục nối tiếp đơn đến kỳ trong tháng (kỳ mới kết thúc đúng tháng này năm sau), nên số đã không còn vượt số đến kỳ.
 

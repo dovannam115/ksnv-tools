@@ -207,8 +207,10 @@ def run_ksnv(a):
                       stat("DT tháng (tr.đ)", tot_i),
                       stat("Ranges to write", len(data), "good" if not missing else "warn")],
             "warns": res["warnings"] + missing,
-            "notes": ["Sheet: %s" % title, "Google: %s" % auth.email] + cov_notes +
-                     [", ".join("%s %d" % kv for kv in by_tab.items())],
+            "notes": ["Sheet: %s" % title, "Google: %s" % auth.email,
+                      "Ô sẽ ghi: " + ", ".join("%s %d" % kv for kv in by_tab.items())],
+            "sources": [{"label": n.split(": ", 1)[0], "value": n.split(": ", 1)[1],
+                         "ok": not n.endswith("chưa có")} for n in cov_notes],
             "tables": tables, "plan_dir": DIR,
             "parts": [p for p, tab in KSNV_PARTS.items() if by_tab.get(tab)]}
 
